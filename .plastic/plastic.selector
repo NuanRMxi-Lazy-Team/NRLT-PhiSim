@@ -1,4 +1,0 @@
-repository "NRLT_PhiSim@reloadisnoodddddd@cloud.cn"
-  path "/"
-    br "/main"
-    co "/main"
