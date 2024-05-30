@@ -1,0 +1,34 @@
+fileFormatVersion: 2
+guid: 41444bd802e914b0e9ecfbc347354637
+PluginImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  iconMap: {}
+  executionOrder: {}
+  defineConstraints: []
+  isPreloaded: 0
+  isOverridable: 0
+  isExplicitlyReferenced: 0
+  validateReferences: 1
+  platformData:
+  - first:
+      Any: 
+    second:
+      enabled: 1
+      settings: {}
+  - first:
+      Editor: Editor
+    second:
+      enabled: 0
+      settings:
+        DefaultValueInitialized: true
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 107067
+  packageName: Native Audio
+  packageVersion: 7.0.0
+  assetPath: Assets/Native Audio/Plugins/iOS/libsamplerate-0.1.9/src/mid_qual_coeffs.h
+  uploadId: 472651

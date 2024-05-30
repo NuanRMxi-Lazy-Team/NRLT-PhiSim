@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Languages_zh-Hans
+  m_EditorClassIdentifier: 
+  m_LocaleId:
+    m_Code: zh-Hans
+  m_SharedData: {fileID: 11400000, guid: 7b47cd22822981e4282ce667bc75ff25, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 3255995195392
+    m_Localized: "\u672C\u6A21\u62DF\u5668\u6CA1\u6709\u4F7F\u7528lchzh3473\u7684Phigros\u6A21\u62DF\u5668"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17412089962496
+    m_Localized: "\u52A0\u8F7D\u8C31\u9762"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17851766267904
+    m_Localized: "\u5F00\u59CB\u6E38\u73A9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 260103931420672
+    m_Localized: "\u98DE\u821E"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 715402639302656
+    m_Localized: "\u8BF7\u524D\u5F80\u8BBE\u7F6E\u5411\u672C\u7A0B\u5E8F\u6DFB\u52A0\u8BBF\u95EE\u6240\u6709\u6587\u4EF6\u7684\u6743\u9650\uFF0C\u5982\u60A8\u5DF2\u7ECF\u6DFB\u52A0\uFF0C\u8BF7\u5FFD\u7565"
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

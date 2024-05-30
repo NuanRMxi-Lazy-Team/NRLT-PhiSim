@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 4e087c09ae67e456dad699b11a42fc89
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 107067
+  packageName: Native Audio
+  packageVersion: 7.0.0
+  assetPath: Assets/Native Audio/CHANGELOG.md
+  uploadId: 472651

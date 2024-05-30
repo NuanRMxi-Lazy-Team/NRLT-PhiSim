@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 0bd3d35e3a6e045bcb3fe65556436ae0
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 107067
+  packageName: Native Audio
+  packageVersion: 7.0.0
+  assetPath: Assets/Native Audio/Plugins/iOS/libsamplerate-0.1.9/COPYING
+  uploadId: 472651

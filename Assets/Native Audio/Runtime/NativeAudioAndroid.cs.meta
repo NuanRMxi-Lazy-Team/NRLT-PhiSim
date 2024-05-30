@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: ea91577c2d6f345288c0dd78df7764d2
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 107067
+  packageName: Native Audio
+  packageVersion: 7.0.0
+  assetPath: Assets/Native Audio/Runtime/NativeAudioAndroid.cs
+  uploadId: 472651

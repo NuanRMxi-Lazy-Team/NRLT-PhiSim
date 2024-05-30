@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 3ff58e03fdf8f4afaa3c5fc905e671af
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 107067
+  packageName: Native Audio
+  packageVersion: 7.0.0
+  assetPath: Assets/Native Audio/Plugins/iOS/libsamplerate-0.1.9/src/src_zoh.lo
+  uploadId: 472651

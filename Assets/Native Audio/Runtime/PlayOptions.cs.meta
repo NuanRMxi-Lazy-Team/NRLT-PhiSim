@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 699aa965027f94db9a7062714c477358
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 107067
+  packageName: Native Audio
+  packageVersion: 7.0.0
+  assetPath: Assets/Native Audio/Runtime/PlayOptions.cs
+  uploadId: 472651

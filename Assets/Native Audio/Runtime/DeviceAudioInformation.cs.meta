@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 2c45738ed5eb948f78259c0b922e14dc
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 107067
+  packageName: Native Audio
+  packageVersion: 7.0.0
+  assetPath: Assets/Native Audio/Runtime/DeviceAudioInformation.cs
+  uploadId: 472651
