@@ -415,7 +415,6 @@ namespace Phigros_Fanmade
                         chart.judgeLineList.Add(judgeLine);
                     }
 
-
                     return chart;
                 }
                 else if (jsonChart["formatVersion"] == 1)
