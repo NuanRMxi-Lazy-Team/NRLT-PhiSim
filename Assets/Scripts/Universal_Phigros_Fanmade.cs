@@ -11,7 +11,7 @@ using LogType = LogWriter.LogType;
 
 namespace Phigros_Fanmade
 {
-    class Chart
+    public class Chart
     {
         /// <summary>
         /// 官谱时间转换
@@ -29,18 +29,19 @@ namespace Phigros_Fanmade
         /// <summary>
         /// 官谱坐标转换
         /// </summary>
-        private class CoordinateTransformer
+        private static class CoordinateTransformer
         {
             //以1920x1080分辨率为基准，后续此代码块将调整
             private const float XMin = -960f;
             private const float XMax = 960f;
             private const float YMin = -540f;
             private const float YMax = 540f;
+            
 
             /// <summary>
             /// 提供官谱X坐标，返回以输入分辨率为基准的X坐标
             /// </summary>
-            /// <param name="x">
+            /// <param name="x"></param>
             /// <returns>以输入分辨率为基准的X坐标</returns>
             public static float TransformX(float x)
             {
@@ -51,7 +52,7 @@ namespace Phigros_Fanmade
             /// <summary>
             /// 提供官谱Y坐标，返回以输入分辨率为基准的Y坐标
             /// </summary>
-            /// <param name="y">
+            /// <param name="y"></param>
             /// <returns>以输入分辨率为基准的Y坐标</returns>
             public static float TransformY(float y)
             {
@@ -59,6 +60,7 @@ namespace Phigros_Fanmade
             }
         }
 
+        #region 音频部分
         /// <summary>
         /// wav音频文件转AudioClip
         /// </summary>
@@ -90,50 +92,67 @@ namespace Phigros_Fanmade
                 return null;
             }
         }
-
+        #endregion
 
         //Type
-        public Chart_Type chartType { get; set; }
+        public ChartType chartType { get; set; }
 
         //List
-        public List<JudgeLine> judgeLineList { get; set; }
+        public List<JudgeLine> judgeLineList { get; set; } = new();
 
         //Data
         public AudioClip music { get; set; }
         public Image Illustration { get; set; }
         public string rawChart { get; set; }
 
-
+        #region 谱面转换区块
         [CanBeNull]
-        public static Chart ChartConverter(string filePath, string cacheFileDirectory)
+        public static Chart ChartConverter(byte[] fileData, string cacheFileDirectory,string FileExtension)
         {
             try
             {
-                //检查文件扩展名是否为.zip
-                if (Path.GetExtension(filePath) != ".zip")
+                //在缓存文件夹下创建一个新的叫"ChartFileCache"的文件夹
+                if (Directory.Exists(cacheFileDirectory))
                 {
-                    Log.Write($"{filePath} is not a .zip file");
+                    if (!Directory.Exists(cacheFileDirectory+ "\\ChartFileCache"))
+                    {
+                        Directory.CreateDirectory(cacheFileDirectory + "\\ChartFileCache");
+                    }
+                }
+                cacheFileDirectory += "\\ChartFileCache";
+                //清空缓存文件夹
+                DirectoryInfo di = new(cacheFileDirectory);
+                foreach (FileInfo file in di.GetFiles())
+                {
+                    file.Delete();
+                }
+                
+                //检查文件扩展名是否为.zip
+                if (Path.GetExtension(FileExtension) != ".zip")
+                {
+                    Log.Write("The selected file format is not zip");
                     return null;
                 }
 
                 //将文件解压
-                ZipFile.ExtractToDirectory(filePath, cacheFileDirectory);
+                File.WriteAllBytes(cacheFileDirectory + "\\ChartFileCache.zip",fileData);
+                ZipFile.ExtractToDirectory(cacheFileDirectory + "\\ChartFileCache.zip", cacheFileDirectory);
 
                 //检查目录下是否含有config.json，如果有，读取到内存，否则返回null
                 JSONNode jsonConfig;
                 if (!File.Exists(cacheFileDirectory + "/config.json"))
                 {
-                    Log.Write($"{filePath} does not contain config.json");
+                    Log.Write("The selected file cannot be parsed into the config. json file");
                     return null;
                 }
                 else
                 {
-                    jsonConfig = JSON.Parse(File.ReadAllText(cacheFileDirectory + "/config.json"));
+                    jsonConfig = JSON.Parse(File.ReadAllText(cacheFileDirectory + "\\config.json"));
                     //检查是否含有三个必要字段，music，illustration和chart
                     if (jsonConfig["music"] == null || jsonConfig["illustration"] == null ||
                         jsonConfig["chart"] == null)
                     {
-                        Log.Write($"{filePath} does not contain music, illustration or chart");
+                        Log.Write("Unable to find illustrations, music, or chart files in the selected file");
                         return null;
                     }
                 }
@@ -141,26 +160,28 @@ namespace Phigros_Fanmade
                 //检查参数中的文件都是否存在，若其中一个不存在，报错并返回null
                 if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["music"]))
                 {
-                    Log.Write($"{filePath} does not contain music");
+                    Log.Write("Load music is Failed");
                     return null;
                 }
 
                 if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["illustration"]))
                 {
-                    Log.Write($"{filePath} does not contain illustration");
+                    Log.Write("Load illustration is Failed");
                     return null;
                 }
 
                 if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["chart"]))
                 {
-                    Log.Write($"{filePath} does not contain chart");
+                    Log.Write("Load chart is Failed");
                     return null;
                 }
 
 
-                //读取谱面到内存
-                Chart chart = new();
-                chart.rawChart = File.ReadAllText(jsonConfig["chart"]);
+                //读取谱面
+                Chart chart = new()
+                {
+                    rawChart = File.ReadAllText(cacheFileDirectory + "\\" + jsonConfig["chart"])
+                };
                 var jsonChart = JSON.Parse(chart.rawChart);
 
                 //载入音频和插图
@@ -171,8 +192,8 @@ namespace Phigros_Fanmade
                 if (jsonChart["formatVersion"] == 3)
                 {
                     //第三代Phigros官谱
-                    Log.Write($"{filePath} Chart Version is Official_V3");
-                    chart.chartType = Chart_Type.Official_V3;
+                    Log.Write("Chart Version is Official_V3");
+                    chart.chartType = ChartType.Official_V3;
 
                     //读取出所有判定线
                     var judgeLineList = jsonChart["judgeLineList"];
@@ -193,31 +214,28 @@ namespace Phigros_Fanmade
                             judgeLineList[i]["speedEvents"]; //Note流速变更事件
 
                         //判定线初始化
-                        var judgeLine = new JudgeLine();
-
-                        judgeLine.xMoveList = new List<Event.XMove>(); //X移动事件初始化
-                        judgeLine.yMoveList = new List<Event.YMove>(); //Y移动事件初始化
+                        JudgeLine judgeLine = new();
                         //转换XY Move事件
                         for (int j = 0; j < judgeLineMoveEventList.Count; j++)
                         {
                             //时间转换
-                            double eventStartTime = judgeLineMoveEventList[j]["startTime"] <= 0.0
+                            var eventStartTime = judgeLineMoveEventList[j]["startTime"] <= 0.0
                                 ? 0 //超界，按0处理
                                 : OfficialV3_TimeConverter(judgeLineMoveEventList[j]["startTime"],
                                     judgeLineBpm); //转换T为毫秒
 
-                            double eventEndTime = judgeLineMoveEventList[j]["endTime"] >= 99999.0
+                            var eventEndTime = judgeLineMoveEventList[j]["endTime"] >= 99999.0
                                 ? eventStartTime
                                 : OfficialV3_TimeConverter(judgeLineMoveEventList[j]["endTime"], judgeLineBpm);
 
                             //转换与添加坐标系
-                            float eventXStartValue =
+                            var eventXStartValue =
                                 CoordinateTransformer.TransformX(judgeLineMoveEventList[j]["start"]);
-                            float eventXEndValue =
+                            var eventXEndValue =
                                 CoordinateTransformer.TransformX(judgeLineList["end"]);
-                            float eventYStartValue =
+                            var eventYStartValue =
                                 CoordinateTransformer.TransformY(judgeLineMoveEventList[j]["start2"]);
-                            float eventYEndValue =
+                            var eventYEndValue =
                                 CoordinateTransformer.TransformY(judgeLineList["end2"]);
 
                             //添加数值到列表
@@ -242,12 +260,12 @@ namespace Phigros_Fanmade
                         for (int j = 0; j < judgeLineAngleChangeEventList.Count; j++)
                         {
                             //时间转换
-                            double eventStartTime = judgeLineAngleChangeEventList[j]["statTime"] <= 0.0
+                            var eventStartTime = judgeLineAngleChangeEventList[j]["statTime"] <= 0.0
                                 ? 0 //超界，按0处理
                                 : OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["statTime"],
                                     judgeLineBpm); //转换T为毫秒
 
-                            double eventEndTime = judgeLineAngleChangeEventList[j]["endTime"] >= 999999.0
+                            var eventEndTime = judgeLineAngleChangeEventList[j]["endTime"] >= 999999.0
                                 ? eventStartTime //超界，与事件的开始时间相同
                                 : OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒
@@ -262,17 +280,16 @@ namespace Phigros_Fanmade
                             });
                         }
 
-                        judgeLine.alphaChangeList = new List<Event.AlphaChange>(); //透明度变更事件初始化
                         //转换透明度变更事件
                         for (int j = 0; j < judgeLineAlphaChangeEventList.Count; j++)
                         {
                             //时间转换
-                            double eventStartTime = judgeLineAlphaChangeEventList[j]["startTime"] <= 0.0
+                            var eventStartTime = judgeLineAlphaChangeEventList[j]["startTime"] <= 0.0
                                 ? 0 //超界，按0处理
                                 : OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["startTime"],
                                     judgeLineBpm); //转换T为毫秒
 
-                            double eventEndTime = judgeLineAlphaChangeEventList[j]["endTime"] >= 99999.0
+                            var eventEndTime = judgeLineAlphaChangeEventList[j]["endTime"] >= 99999.0
                                 ? eventStartTime
                                 : OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒 
@@ -287,7 +304,6 @@ namespace Phigros_Fanmade
                             });
                         }
 
-                        judgeLine.speedChangeList = new List<Event.SpeedChange>(); //角度变更事件初始化
                         //转换速度变更事件
                         for (int j = 0; j < judgeLineSpeedChangeEventList.Count; j++)
                         {
@@ -302,26 +318,33 @@ namespace Phigros_Fanmade
                                 : OfficialV3_TimeConverter(judgeLineSpeedChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒 
 
-                            //添加数值到列表
-                            judgeLine.speedChangeList.Add(new Event.SpeedChange
+                            //添加到列表
+                            judgeLine.speedChangeList.Add(new Event.SpeedEvent
                             {
                                 startTime = eventStartTime,
                                 endTime = eventEndTime,
                                 startValue = judgeLineSpeedChangeEventList[j]["value"],
                                 endValue = judgeLineSpeedChangeEventList[j]["value"] //官谱速度无任何缓动，只有关键帧
                             });
+                            judgeLine.speedChangeList = Event.SpeedEvent.CalcFloorPosition(judgeLine.speedChangeList);
+
                         }
+                        
 
-                        var judgeLineAboveNoteList = judgeLineList[i]["notesAbove"]; //下落Note列表
-                        var judgeLineBelowNoteList = judgeLineList[i]["notesBelow"]; //上升Note列表
-                        judgeLine.noteList = new List<Note>();
+                        bool setAbove = true;
+                        setNote:
 
+                        JSONNode noteList = setAbove
+                            ? judgeLineList[i]["notesAbove"]
+                            : judgeLineList[i]["notesBelow"];
+
+                        
                         //下落Note遍历
-                        for (int j = 0; j < judgeLineAboveNoteList.Count; j++)
+                        for (int j = 0; j < noteList.Count; j++)
                         {
                             //Note类型识别
                             Note.NoteType noteType;
-                            switch ((int)judgeLineAboveNoteList[j]["type"])
+                            switch ((int)noteList[j]["type"])
                             {
                                 case 1:
                                     noteType = Note.NoteType.Tap;
@@ -337,17 +360,16 @@ namespace Phigros_Fanmade
                                     break;
                                 default:
                                     Log.Write(
-                                        $"Unknown note types in {judgeLineAboveNoteList[j]}\nThe chart may be damaged",
+                                        $"Unknown note types in {noteList[j]}\nThe chart may be damaged",
                                         LogType.Error);
                                     return null;
-                                //break;
                             }
 
                             //打击时刻转换
                             double noteClickStartTime =
-                                OfficialV3_TimeConverter(judgeLineAboveNoteList[j]["time"], judgeLineBpm);
+                                OfficialV3_TimeConverter(noteList[j]["time"], judgeLineBpm);
                             double noteClickEndTime = noteType == Note.NoteType.Hold
-                                ? OfficialV3_TimeConverter(judgeLineAboveNoteList[j]["holdTime"], judgeLineBpm) +
+                                ? OfficialV3_TimeConverter(noteList[j]["holdTime"], judgeLineBpm) +
                                   noteClickStartTime
                                 : noteClickStartTime;
 
@@ -357,59 +379,17 @@ namespace Phigros_Fanmade
                                 type = noteType,
                                 clickStartTime = noteClickStartTime,
                                 clickEndTime = noteClickEndTime,
-                                x = CoordinateTransformer.TransformX(judgeLineAboveNoteList[j]["positionX"]),
-                                speedMultiplier = judgeLineAboveNoteList[j]["speed"],
-                                above = true
+                                x = CoordinateTransformer.TransformX(noteList[j]["positionX"]),
+                                speedMultiplier = noteList[j]["speed"],
+                                above = setAbove
                             });
                         }
 
-                        //上升Note遍历
-                        for (int j = 0; j < judgeLineBelowNoteList.Count; j++)
+                        if (setAbove)
                         {
-                            //Note类型识别
-                            Note.NoteType noteType;
-                            switch ((int)judgeLineBelowNoteList[j]["type"])
-                            {
-                                case 1:
-                                    noteType = Note.NoteType.Tap;
-                                    break;
-                                case 2:
-                                    noteType = Note.NoteType.Drag;
-                                    break;
-                                case 3:
-                                    noteType = Note.NoteType.Hold;
-                                    break;
-                                case 4:
-                                    noteType = Note.NoteType.Flick;
-                                    break;
-                                default:
-                                    Log.Write(
-                                        $"Unknown note types in {judgeLineBelowNoteList[j]}\nThe chart may be damaged",
-                                        LogType.Error);
-                                    return null;
-                                //break;
-                            }
-
-                            //打击时刻转换
-                            double noteClickStartTime =
-                                OfficialV3_TimeConverter(judgeLineBelowNoteList[j]["time"], judgeLineBpm);
-                            double noteClickEndTime = noteType == Note.NoteType.Hold
-                                ? OfficialV3_TimeConverter(judgeLineBelowNoteList[j]["holdTime"], judgeLineBpm) +
-                                  noteClickStartTime
-                                : noteClickStartTime;
-
-                            //添加Note
-                            judgeLine.noteList.Add(new Note
-                            {
-                                type = noteType,
-                                clickStartTime = noteClickStartTime,
-                                clickEndTime = noteClickEndTime,
-                                x = CoordinateTransformer.TransformX(judgeLineBelowNoteList[j]["positionX"]),
-                                speedMultiplier = judgeLineBelowNoteList[j]["speed"],
-                                above = true
-                            });
+                            setAbove = false;
+                            goto setNote;
                         }
-
 
                         //添加判定线
                         chart.judgeLineList.Add(judgeLine);
@@ -420,24 +400,24 @@ namespace Phigros_Fanmade
                 else if (jsonChart["formatVersion"] == 1)
                 {
                     //第一代Phigros官谱
-                    Log.Write($"{filePath} Chart Version is Official_V1");
-                    chart.chartType = Chart_Type.Official_V1;
-                    return null; //暂不支持
+                    Log.Write("Chart Version is Official_V1");
+                    chart.chartType = ChartType.Official_V1;
+                    return chart; //暂不支持
                 }
                 else if (jsonChart["META"] != "" || jsonChart["META"] != null)
                 {
                     //第4.0代RPE谱面
-                    Log.Write($"{filePath} Chart Version is RePhiEdit_V400, but this chart is not supported.");
-                    chart.chartType = Chart_Type.RePhiEdit_V400;
-                    return null; //暂不支持
+                    Log.Write("Chart Version is RePhiEdit_V400, but this chart is not supported.");
+                    chart.chartType = ChartType.RePhiEdit_V400;
+                    return chart; //暂不支持
                 }
                 else
                 {
                     //未知的或不支持的文件
                     Log.Write(
-                        $"{filePath} The format of this chart may be PhiEdit_V0, but it is not supported and will not be supported in the future");
-                    chart.chartType = Chart_Type.PhiEdit_V0;
-                    return null; //永不支持
+                        " The format of this chart may be PhiEdit_V0, but it is not supported and will not be supported in the future");
+                    chart.chartType = ChartType.PhiEdit_V0;
+                    return chart; //永不支持，滚出去
                 }
             }
             catch (Exception ex)
@@ -446,23 +426,26 @@ namespace Phigros_Fanmade
                 return null; //未知问题结束运行
             }
         }
+        #endregion
     }
+
 
     /// <summary>
     /// 谱面类型
     /// </summary>
-    public enum Chart_Type
+    public enum ChartType
     {
         Official_V3,
         Official_V1,
         RePhiEdit_V400,
-        PhiEdit_V0
+        PhiEdit_V0,
+        SPCNRLT_V1
     }
 
     /// <summary>
     /// 事件
     /// </summary>
-    public class Event
+    public static class Event
     {
         /// <summary>
         /// X移动事件
@@ -471,7 +454,6 @@ namespace Phigros_Fanmade
         {
             //Value
             public float startValue { get; set; }
-
             public float endValue { get; set; }
 
             //Time
@@ -486,7 +468,6 @@ namespace Phigros_Fanmade
         {
             //Value
             public float startValue { get; set; }
-
             public float endValue { get; set; }
 
             //Time
@@ -501,7 +482,6 @@ namespace Phigros_Fanmade
         {
             //Value
             public float startValue { get; set; }
-
             public float endValue { get; set; }
 
             //Time
@@ -516,7 +496,6 @@ namespace Phigros_Fanmade
         {
             //Value
             public float startValue { get; set; }
-
             public float endValue { get; set; }
 
             //Time
@@ -527,16 +506,47 @@ namespace Phigros_Fanmade
         /// <summary>
         /// 流速变化事件
         /// </summary>
-        public class SpeedChange
+        public class SpeedEvent
         {
             //Value
             public float startValue { get; set; }
-
             public float endValue { get; set; }
 
             //Time
             public double startTime { get; set; }
             public double endTime { get; set; }
+
+            //Special
+            public double floorPosition { get; set; } = 0.0;
+
+            /// <summary>
+            /// 计算NoteFloorPosition主要方法
+            /// </summary>
+            /// <param name="originSpeedList"></param>
+            /// <returns>经过更新的流速变更列表</returns>
+            public static List<SpeedEvent> CalcFloorPosition(List<SpeedEvent> originSpeedList)
+            {
+                //克隆列表
+                var speedList = new List<SpeedEvent>(originSpeedList);
+                //抄的。感谢PhiDot项目
+                foreach (SpeedEvent lastEvent in speedList)
+                {
+                    int i = speedList.IndexOf(lastEvent);
+                    if (i == speedList.Count - 1) break;
+                    var curEvent = speedList[i + 1];
+
+                    double lastStartTime = lastEvent.startTime;
+                    double lastEndTime = lastEvent.endTime;
+
+                    double curStartTime = curEvent.startTime;
+
+
+                    curEvent.floorPosition +=
+                    lastEvent.floorPosition + (lastEvent.endValue + lastEvent.startValue) * (lastEndTime - lastStartTime) / 2 +
+                    lastEvent.endValue * (curStartTime - lastEndTime) / 1;
+                }
+                return speedList;
+            }
         }
     }
 
@@ -545,6 +555,7 @@ namespace Phigros_Fanmade
     /// </summary>
     public class Note
     {
+        //Type
         public enum NoteType
         {
             Tap = 1,
@@ -558,7 +569,8 @@ namespace Phigros_Fanmade
         //Value
         public float x { get; set; }
         public float speedMultiplier { get; set; }
-
+        
+        //Special
         public bool above { get; set; }
 
         //Time
@@ -571,12 +583,20 @@ namespace Phigros_Fanmade
     /// </summary>
     public class JudgeLine
     {
-        //List
-        public List<Event.XMove> xMoveList { get; set; }
-        public List<Event.YMove> yMoveList { get; set; }
-        public List<Event.AlphaChange> alphaChangeList { get; set; }
-        public List<Event.AngleChange> angleChangeList { get; set; }
-        public List<Event.SpeedChange> speedChangeList { get; set; }
-        public List<Note> noteList { get; set; }
+        //Event List
+        public List<Event.XMove> xMoveList 
+        { get; set; } = new();
+        public List<Event.YMove> yMoveList 
+        { get; set; } = new();
+        public List<Event.AlphaChange> alphaChangeList 
+        { get; set; } = new();
+        public List<Event.AngleChange> angleChangeList 
+        { get; set; } = new();
+        public List<Event.SpeedEvent> speedChangeList 
+        { get; set; } = new();
+
+        //Note List
+        public List<Note> noteList 
+        { get; set; } = new();
     }
 }

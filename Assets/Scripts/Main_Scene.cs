@@ -1,9 +1,14 @@
 using System;
+using System.IO;
 using UnityEngine;
 using LogWriter;
 using LogType = LogWriter.LogType;
 using UnityEngine.Localization.Settings;
 using Phigros_Fanmade;
+using UnityEngine.SceneManagement;
+using UnityEditor;
+using Keiwando.NFSO;
+
 #if UNITY_ANDROID
 using UnityEngine.Android;
 #endif
@@ -14,6 +19,8 @@ public class Main_Button_Click : MonoBehaviour
     void Start()
     {
         ChartCache.Instance.debugMode = true;
+        
+        #region 权限相关
 #if UNITY_EDITOR_WIN
         Log.Write("Start On UNITY_EDITOR.", LogType.Debug);
 #elif UNITY_ANDROID
@@ -40,6 +47,10 @@ public class Main_Button_Click : MonoBehaviour
 #elif UNITY_STANDALONE_WIN
         Log.Write("Start On UNITY_STANDALONE_WIN.", LogType.Debug);
 #endif
+        
+
+        #endregion
+        
         //设置移动模式
         ChartCache.Instance.moveMode = ChartCache.MoveMode.WhatTheFuck;
     }
@@ -49,15 +60,44 @@ public class Main_Button_Click : MonoBehaviour
     {
         try
         {
-
+            //提示选取与加载谱面
+            NativeFileSO.shared.OpenFile(SupportedFilePreferences.supportedFileTypes, (isOpen, file) =>
+            {
+                if (isOpen)
+                {
+                    Log.Write(file.Name);
+#if UNITY_EDITOR
+                    ChartCache.Instance.chart = Chart.ChartConverter(file.Data, "D:\\PhiOfaChart",file.Extension);
+#else
+                    ChartCache.Instance.chart = Chart.ChartConverter(file.Data, Directory.GetCurrentDirectory(),file.Extension);
+#endif
+                    
+                }
+            });
         }
         catch (Exception e)
         {
-            Log.Write("Unknown errors in: " + e.Message , LogType.Error);
+            Log.Write("Unknown errors in: " + e.Message, LogType.Error);
         }
     }
 
+    public void Play()
+    {
+        if (ChartCache.Instance.chart != null)
+        {
+            //进入测试播放屏幕
+            SceneManager.LoadScene(1);
+        }
+        else
+        {
+            Log.Write("没谱面你播放个集贸（E:Main Not Load Chart)", LogType.Error);
+        }
+    }
 #if UNITY_ANDROID
+    /// <summary>
+    /// Android Toast Show
+    /// </summary>
+    /// <param name="toastString"></param>
     public void ShowToast(string toastString)
     {
         if (Application.platform == RuntimePlatform.Android)

@@ -1,3 +1,4 @@
+using Phigros_Fanmade;
 using UnityEngine;
 
 public class ChartCache : MonoBehaviour
@@ -26,7 +27,6 @@ public class ChartCache : MonoBehaviour
                     DontDestroyOnLoad(singletonObject);
                 }
             }
-
             return _instance;
         }
     }
@@ -48,6 +48,16 @@ public class ChartCache : MonoBehaviour
         get { return _moveMode; }
         set { _moveMode = value; }
     }
+
+    private Chart _chart;
+
+    public Chart chart
+    {
+        get { return _chart; }
+        set { _chart = value; }
+    }
+
+
 
     public enum MoveMode
     {

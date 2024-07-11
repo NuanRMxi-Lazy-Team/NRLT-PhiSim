@@ -13,12 +13,10 @@ MonoBehaviour:
   m_Name: Localization-Locales
   m_EditorClassIdentifier: 
   m_GroupName: Localization-Locales
-  m_Data:
-    m_SerializedData: []
   m_GUID: c218005aa64470f4394bb7840ef28dad
   m_SerializeEntries:
-  - m_GUID: a46527e3b02afb64e8642866468ea863
-    m_Address: Chinese (Simplified) (zh-Hans)
+  - m_GUID: 0709bb1b333129e4e9013686a6a5abf6
+    m_Address: Chinese (Traditional) (zh-Hant)
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale
@@ -29,8 +27,8 @@ MonoBehaviour:
     m_SerializedLabels:
     - Locale
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 0709bb1b333129e4e9013686a6a5abf6
-    m_Address: Chinese (Traditional) (zh-Hant)
+  - m_GUID: a46527e3b02afb64e8642866468ea863
+    m_Address: Chinese (Simplified) (zh-Hans)
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale
