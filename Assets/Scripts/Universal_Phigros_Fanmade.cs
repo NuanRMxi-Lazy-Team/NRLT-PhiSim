@@ -339,7 +339,7 @@ namespace Phigros_Fanmade
                             : judgeLineList[i]["notesBelow"];
 
                         
-                        //下落Note遍历
+                        //Note遍历
                         for (int j = 0; j < noteList.Count; j++)
                         {
                             //Note类型识别
@@ -379,7 +379,8 @@ namespace Phigros_Fanmade
                                 type = noteType,
                                 clickStartTime = noteClickStartTime,
                                 clickEndTime = noteClickEndTime,
-                                x = CoordinateTransformer.TransformX(noteList[j]["positionX"]),
+                                //x = CoordinateTransformer.TransformX(noteList[j]["positionX"]),
+                                x = (float)noteList[j]["positionX"] * 108f,
                                 speedMultiplier = noteList[j]["speed"],
                                 above = setAbove
                             });

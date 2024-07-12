@@ -22,16 +22,13 @@ public class Play_Canvas_Load : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        ChartCache.Instance.chart = Chart.ChartConverter(File.ReadAllBytes("D:\\PhiOfaChart\\SMS.zip"), "D:\\PhiOfaChart",".zip");
+        //ChartCache.Instance.chart = Chart.ChartConverter(File.ReadAllBytes("D:\\PhiOfaChart\\SMS.zip"), "D:\\PhiOfaChart",".zip");
         
         //检查缓存中是否存在谱面
         if (ChartCache.Instance.chart != null)
         {
             //加载谱面
-
-            StartCoroutine(DrawScene());
-            
-            //DrawScene();
+            DrawScene();
         }
         else
         {
@@ -103,40 +100,64 @@ public class Play_Canvas_Load : MonoBehaviour
     
 
 
-    IEnumerator DrawScene()
+    public void DrawScene()
     {
         var chart = ChartCache.Instance.chart;
         double unixTime = System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1, 0, 0, 0, 0))
-            .TotalMilliseconds + 10000;
+            .TotalMilliseconds + 5000;
         for (int i = 0; i < chart.judgeLineList.Count; i++)
         {
-            Log.Write("F", LogType.Debug);
             // 设置父对象为画布
             GameObject parent = GameObject.Find("Play Canvas");
-            Log.Write("I", LogType.Debug);
             // 生成判定线实例
             GameObject instance = Instantiate(JudgeLine, parent.transform);
             
-            Log.Write("GTR", LogType.Debug);
             // 设置判定线位置到画布正中间
             instance.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 0);
             // 获取预制件的脚本组件
-            Log.Write("GTPJ", LogType.Debug);
             var script = instance.GetComponent<Play_JudgeLine>();
             // 设置脚本中的公共变量
-            Log.Write("STpST jL wai", LogType.Debug);
             script.playStartTime = unixTime;
             script.judgeLine = chart.judgeLineList[i];
             script.whoami = i;
-            Log.Write("i", LogType.Debug);
+            
+            //生成note实例
+            for (int j = 0; j < chart.judgeLineList[i].noteList.Count; j++)
+            {
+                var note = chart.judgeLineList[i].noteList[j];
+                GameObject noteGameObject;
+                switch (note.type)
+                {
+                    case Note.NoteType.Tap:
+                        noteGameObject = Instantiate(TapNote);
+                        break;
+                    case Note.NoteType.Hold:
+                        noteGameObject = Instantiate(HoldNote);
+                        break;
+                    case Note.NoteType.Drag:
+                        noteGameObject = Instantiate(DragNote);
+                        break;
+                    case Note.NoteType.Flick:
+                        noteGameObject = Instantiate(FlickNote);
+                        break;
+                    default:
+                        Log.Write($"Unknown note types in{i}", LogType.Error);
+                        noteGameObject = Instantiate(TapNote);
+                        break;
+                }
+
+                noteGameObject.GetComponent<Play_Note>().fatherJudgeLine = instance;
+                noteGameObject.GetComponent<Play_Note>().note = note;
+                noteGameObject.GetComponent<Play_Note>().playStartUnixTime = unixTime;
+                noteGameObject.transform.SetParent(instance.GetComponent<RectTransform>());
+            }
         }
-        
+
 #if UNITY_EDITOR_WIN
         StartCoroutine(MusicPlay(chart.music, unixTime));
 #elif UNITY_ANDROID
         NativeAudio.Initialize();
         StartCoroutine(MusicPlay(chart.music, unixTime));
 #endif
-        yield return null;
     }
 }

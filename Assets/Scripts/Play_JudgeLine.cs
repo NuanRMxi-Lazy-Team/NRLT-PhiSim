@@ -16,13 +16,7 @@ public class Play_JudgeLine : MonoBehaviour
     public double playStartTime;
 
     public int whoami = 0;
-
-    //NoteGameObject
-    public GameObject TapNote;
-    public GameObject HoldNote;
-    public GameObject DragNote;
-    public GameObject FlickNote;
-
+    
     //self
     public RectTransform rectTransform;
 
@@ -38,37 +32,8 @@ public class Play_JudgeLine : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
-        for (int i = 0; i < judgeLine.noteList.Count; i++)
-        {
-            var note = judgeLine.noteList[i];
-            GameObject noteGameObject;
-            switch (note.type)
-            {
-                case Note.NoteType.Tap:
-                    noteGameObject = Instantiate(TapNote);
-                    break;
-                case Note.NoteType.Hold:
-                    noteGameObject = Instantiate(HoldNote);
-                    break;
-                case Note.NoteType.Drag:
-                    noteGameObject = Instantiate(DragNote);
-                    break;
-                case Note.NoteType.Flick:
-                    noteGameObject = Instantiate(FlickNote);
-                    break;
-                default:
-                    Log.Write($"Unknown note types in{i}", LogType.Error);
-                    noteGameObject = Instantiate(TapNote);
-                    break;
-            }
 
-            noteGameObject.GetComponent<Play_Note>().fatherJudgeLine = GetComponent<GameObject>();
-            noteGameObject.GetComponent<Play_Note>().note = note;
-            noteGameObject.GetComponent<Play_Note>().playStartUnixTime = playStartTime;
-            noteGameObject.transform.SetParent(rectTransform);
-        }
-        
+        Log.Write(whoami.ToString(),LogType.Debug);
         if (ChartCache.Instance.moveMode == ChartCache.MoveMode.WhatTheFuck)
         {
             StartCoroutine(XMoveEventReader());
@@ -91,18 +56,26 @@ public class Play_JudgeLine : MonoBehaviour
         var xMoveList = judgeLine.xMoveList;
         while (true)
         {
-            var now = DateTime.Now.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalSeconds -
-                            playStartTime;
-            if (xMoveList[i].startTime <= now)
+            var now = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds;
+            float playToNow = (float)(now - playStartTime);
+            if (!(i <= xMoveList.Count - 1))
             {
-                var xEvent = xMoveList[i];
-                StartCoroutine(MoveXOverTime(xEvent.startValue, xEvent.endValue,
-                    (float)(xEvent.endTime - xEvent.startTime) / 1000));
+                break;
+            }
+            if (playToNow >= xMoveList[i].startTime)
+            {
+                StartCoroutine(MoveXOverTime
+                    (
+                        xMoveList[i].startValue, xMoveList[i].endValue, 
+                        (float)(xMoveList[i].endTime - xMoveList[i].startTime) / 1000
+                        ));
                 i++;
             }
             yield return null;
         }
     }
+    
+
 
     /// <summary>
     /// Y移动事件读取器
@@ -113,16 +86,23 @@ public class Play_JudgeLine : MonoBehaviour
         var yMoveList = judgeLine.yMoveList;
         while (true)
         {
-            var now = DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
+            var now = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
                       playStartTime;
+            if (!(i <= yMoveList.Count - 1))
+            {
+                break;
+            }
             if (yMoveList[i].startTime <= now)
             {
                 var yEvent = yMoveList[i];
-                StartCoroutine(MoveYOverTime(yEvent.startValue, yEvent.endValue,
-                        (float)(yEvent.endTime - yEvent.startTime) / 1000));
+                StartCoroutine(MoveYOverTime(
+                    yEvent.startValue, 
+                    yEvent.endValue,
+                    (float)(yEvent.endTime - yEvent.startTime) / 1000
+                    ));
                 i++;
-                yield return null;
             }
+            yield return null;
         }
     }
 
@@ -132,16 +112,20 @@ public class Play_JudgeLine : MonoBehaviour
         var angleChangeList = judgeLine.angleChangeList;
         while (true)
         {
-            var now = DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
-                                playStartTime;
+            var now = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
+                      playStartTime;
+            if (!(i <= angleChangeList.Count - 1))
+            {
+                break;
+            }
             if (angleChangeList[i].startTime <= now)
             { 
                 var angleEvent = angleChangeList[i]; 
                 StartCoroutine(RotateOverTime(angleEvent.startValue, angleEvent.endValue, 
                     (float)(angleEvent.endTime - angleEvent.startTime) / 1000));
                 i++; 
-                yield return null;
             }
+            yield return null;
         }
     }
     
@@ -151,16 +135,20 @@ public class Play_JudgeLine : MonoBehaviour
         var alphaChangeList = judgeLine.alphaChangeList;
         while (true)
         {
-            var now = DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
+            var now = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
                       playStartTime;
+            if (!(i <= alphaChangeList.Count - 1))
+            {
+                break;
+            }
             if (alphaChangeList[i].startTime <= now)
             {
                 var alphaEvent = alphaChangeList[i];
                 StartCoroutine(FadeOverTime(alphaEvent.startValue, alphaEvent.endValue,
                                 (float)(alphaEvent.endTime - alphaEvent.startTime) / 1000));
                 i++;
-                yield return null;
             }
+            yield return null;
         }
     }
     
@@ -170,12 +158,18 @@ public class Play_JudgeLine : MonoBehaviour
         var speedEventList = judgeLine.speedChangeList;
         while (true)
         {
-            var now = DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
-                            playStartTime;
+            var now = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
+                      playStartTime;
+            if (!(i <= speedEventList.Count - 1))
+            {
+                break;
+            }
             if (speedEventList[i].startTime <= now)
             {
                 lastSpeedEvent = speedEventList[i];
+                i++;
             }
+            yield return null;
         }
     }
     
@@ -197,13 +191,23 @@ public class Play_JudgeLine : MonoBehaviour
         float startTime = Time.time;
         while (Time.time < startTime + duration)
         {
-            rectTransform.anchoredPosition = Vector3.Lerp(new Vector3(startXValue, rectTransform.anchoredPosition.y),
-                new Vector3(endXValue, rectTransform.anchoredPosition.y), (Time.time - startTime) / duration);
+            rectTransform.anchoredPosition = Vector3.Lerp(
+                new Vector3(
+                    startXValue, 
+                    rectTransform.anchoredPosition.y
+                    ),
+                new Vector3(
+                    endXValue, 
+                    rectTransform.anchoredPosition.y
+                    ), 
+                (Time.time - startTime) / duration);
             yield return null;
         }
 
-        rectTransform.anchoredPosition = new Vector3(endXValue, rectTransform.transform.position.y,
-            rectTransform.transform.position.z);
+        rectTransform.anchoredPosition = new Vector3(
+            endXValue,
+            rectTransform.transform.position.y
+            );
     }
 
     /// <summary>
@@ -217,13 +221,23 @@ public class Play_JudgeLine : MonoBehaviour
         float startTime = Time.time;
         while (Time.time < startTime + duration)
         {
-            rectTransform.anchoredPosition = Vector3.Lerp(new Vector3(rectTransform.anchoredPosition.x, startYValue),
-                new Vector3(rectTransform.anchoredPosition.x, endYValue), (Time.time - startTime) / duration);
+            rectTransform.anchoredPosition = Vector3.Lerp(
+                new Vector3(
+                    rectTransform.anchoredPosition.x, 
+                    startYValue
+                    ),
+                new Vector3(
+                    rectTransform.anchoredPosition.x, 
+                    endYValue
+                    ), 
+                (Time.time - startTime) / duration);
             yield return null;
         }
 
-        rectTransform.anchoredPosition = new Vector3(rectTransform.anchoredPosition.x, endYValue,
-            rectTransform.transform.position.z);
+        rectTransform.anchoredPosition = new Vector3(
+            rectTransform.anchoredPosition.x, 
+            endYValue
+            );
     }
 
     /// <summary>
@@ -242,7 +256,11 @@ public class Play_JudgeLine : MonoBehaviour
             yield return null;
         }
 
-        rectTransform.transform.rotation = Quaternion.Euler(0, 0, endRotate);
+        rectTransform.transform.rotation = Quaternion.Euler(
+            0,
+            0,
+            endRotate
+            );
     }
 
     /// <summary>

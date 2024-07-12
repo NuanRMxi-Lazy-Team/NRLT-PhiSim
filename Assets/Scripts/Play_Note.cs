@@ -16,6 +16,7 @@ public class Play_Note : MonoBehaviour
     void Start()
     {
         //一些中文
+        noteRectTransform.transform.rotation = fatherJudgeLine.GetComponent<Play_JudgeLine>().rectTransform.rotation;
     }
 
     // Update is called once per frame
@@ -77,6 +78,6 @@ public class Play_Note : MonoBehaviour
         }
 
 
-        return (float)(yPosition - fatherJudgeLine.GetComponent<Play_JudgeLine>().lastSpeedEvent.floorPosition);
+        return (float)(yPosition); //- fatherJudgeLine.GetComponent<Play_JudgeLine>().lastSpeedEvent.floorPosition);
     }
 }
