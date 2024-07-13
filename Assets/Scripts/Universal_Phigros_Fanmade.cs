@@ -22,7 +22,7 @@ namespace Phigros_Fanmade
         private static double OfficialV3_TimeConverter(double T, float bpm)
         {
             double originalTime = (T / bpm) * 1.875; //结果为秒
-            originalTime = originalTime * 1000; //转换为毫秒
+            originalTime *= 1000; //转换为毫秒
             return originalTime; //返回
         }
 
@@ -224,19 +224,19 @@ namespace Phigros_Fanmade
                                 : OfficialV3_TimeConverter(judgeLineMoveEventList[j]["startTime"],
                                     judgeLineBpm); //转换T为毫秒
 
-                            var eventEndTime = judgeLineMoveEventList[j]["endTime"] >= 99999.0
-                                ? eventStartTime
+                            var eventEndTime = judgeLineMoveEventList[j]["endTime"] >= 1000000000.0
+                                ? eventStartTime + 1000.0
                                 : OfficialV3_TimeConverter(judgeLineMoveEventList[j]["endTime"], judgeLineBpm);
 
                             //转换与添加坐标系
                             var eventXStartValue =
                                 CoordinateTransformer.TransformX(judgeLineMoveEventList[j]["start"]);
                             var eventXEndValue =
-                                CoordinateTransformer.TransformX(judgeLineList["end"]);
+                                CoordinateTransformer.TransformX(judgeLineMoveEventList[j]["end"]);
                             var eventYStartValue =
                                 CoordinateTransformer.TransformY(judgeLineMoveEventList[j]["start2"]);
                             var eventYEndValue =
-                                CoordinateTransformer.TransformY(judgeLineList["end2"]);
+                                CoordinateTransformer.TransformY(judgeLineMoveEventList[j]["end2"]);
 
                             //添加数值到列表
                             judgeLine.xMoveList.Add(new Event.XMove
@@ -260,12 +260,12 @@ namespace Phigros_Fanmade
                         for (int j = 0; j < judgeLineAngleChangeEventList.Count; j++)
                         {
                             //时间转换
-                            var eventStartTime = judgeLineAngleChangeEventList[j]["statTime"] <= 0.0
+                            var eventStartTime = judgeLineAngleChangeEventList[j]["startTime"] <= 0.0
                                 ? 0 //超界，按0处理
-                                : OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["statTime"],
+                                : OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["startTime"],
                                     judgeLineBpm); //转换T为毫秒
 
-                            var eventEndTime = judgeLineAngleChangeEventList[j]["endTime"] >= 999999.0
+                            var eventEndTime = judgeLineAngleChangeEventList[j]["endTime"] >= 1000000000.0
                                 ? eventStartTime //超界，与事件的开始时间相同
                                 : OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒
@@ -289,7 +289,7 @@ namespace Phigros_Fanmade
                                 : OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["startTime"],
                                     judgeLineBpm); //转换T为毫秒
 
-                            var eventEndTime = judgeLineAlphaChangeEventList[j]["endTime"] >= 99999.0
+                            var eventEndTime = judgeLineAlphaChangeEventList[j]["endTime"] >= 1000000000.0
                                 ? eventStartTime
                                 : OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒 
@@ -313,7 +313,7 @@ namespace Phigros_Fanmade
                                 : OfficialV3_TimeConverter(judgeLineSpeedChangeEventList[j]["startTime"],
                                     judgeLineBpm); //转换T为毫秒 
 
-                            double eventEndTime = judgeLineSpeedChangeEventList[j]["endTime"] >= 99999.0
+                            double eventEndTime = judgeLineSpeedChangeEventList[j]["endTime"] >= 1000000000.0
                                 ? eventStartTime
                                 : OfficialV3_TimeConverter(judgeLineSpeedChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒 
