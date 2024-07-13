@@ -147,8 +147,11 @@ public class Play_JudgeLine : MonoBehaviour
             if (alphaChangeList[i].startTime <= now)
             {
                 var alphaEvent = alphaChangeList[i];
-                StartCoroutine(FadeOverTime(alphaEvent.startValue, alphaEvent.endValue,
-                                (float)(alphaEvent.endTime - alphaEvent.startTime) / 1000));
+                StartCoroutine(FadeOverTime(
+                    alphaEvent.startValue, 
+                    alphaEvent.endValue,
+                    (float)(alphaEvent.endTime - alphaEvent.startTime) / 1000
+                    ));
                 i++;
             }
             yield return null;
@@ -252,11 +255,19 @@ public class Play_JudgeLine : MonoBehaviour
     IEnumerator RotateOverTime(float startRotate, float endRotate, float duration)
     {
         float startTime = Time.time;
-        float deltaAngle = Mathf.DeltaAngle(startRotate, endRotate);
         while (Time.time < startTime + duration)
         {
+            ;
             //rTf.rotation = Quaternion.Lerp(Quaternion.Euler(0, 0, startRotate), Quaternion.Euler(0, 0, counterClockwiseAngle), (Time.time - startTime) / duration);
-            rectTransform.rotation = Quaternion.Lerp(Quaternion.Euler(0, 0, startRotate), Quaternion.Euler(0, 0, startRotate + deltaAngle), (Time.time - startTime) / duration);
+            rectTransform.rotation =
+                Quaternion.Euler(
+                    0,
+                    0,
+                    Mathf.Lerp(
+                        startRotate, 
+                        endRotate, 
+                        (Time.time - startTime) / duration
+                    ));
             yield return null;
         }
         rectTransform.transform.rotation = Quaternion.Euler(0, 0, endRotate);

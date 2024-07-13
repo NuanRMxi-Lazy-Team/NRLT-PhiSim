@@ -42,7 +42,7 @@ public class Play_Note : MonoBehaviour
     {
         //检查这是不是hold
         bool isHold = note.clickStartTime != note.clickEndTime;
-
+        
         // 计算已经过去的时间（单位：秒）
         double elapsedTime = currentTime / 1000;
 
@@ -66,7 +66,7 @@ public class Play_Note : MonoBehaviour
         }
 
         // 根据速度（像素/秒）计算y坐标
-        float yPosition = (float)(speed * ((note.clickStartTime / 1000) - elapsedTime) * 648); // 这里加入了速度单位648像素/秒
+        float yPosition = (float)(speed * ((note.clickStartTime / 1000) - elapsedTime) * 648); // 这里加入了速度单位648像素/秒，648是1080 * 0.6
         if (isHold)
         {
             yPosition += 1200f;
