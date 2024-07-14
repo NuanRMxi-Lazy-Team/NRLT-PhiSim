@@ -23,6 +23,8 @@ namespace LogWriter
             string logPath = Application.persistentDataPath + "\\log.txt";
 #elif UNITY_STANDALONE_WIN
             string logPath = Application.dataPath + "\\log.txt";
+#elif UNITY_WEBGL
+            string logPath = "N";
 #endif
             //检查log文件是否存在，如不存在则创建
             if (logPath != "N")

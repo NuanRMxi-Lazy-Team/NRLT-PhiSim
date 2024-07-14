@@ -46,6 +46,8 @@ public class Main_Button_Click : MonoBehaviour
 
 #elif UNITY_STANDALONE_WIN
         Log.Write("Start On UNITY_STANDALONE_WIN.", LogType.Debug);
+#elif UNITY_WEBGL
+        Log.Write("Start On UNITY_WEBGL.", LogType.Debug);
 #endif
         
 
@@ -60,6 +62,7 @@ public class Main_Button_Click : MonoBehaviour
     {
         try
         {
+            
             //提示选取与加载谱面
             NativeFileSO.shared.OpenFile(SupportedFilePreferences.supportedFileTypes, (isOpen, file) =>
             {
@@ -69,7 +72,7 @@ public class Main_Button_Click : MonoBehaviour
 #if UNITY_EDITOR
                     ChartCache.Instance.chart = Chart.ChartConverter(file.Data, "D:\\PhiOfaChart",file.Extension);
 #else
-                    ChartCache.Instance.chart = Chart.ChartConverter(file.Data, Directory.GetCurrentDirectory(),file.Extension);
+                    ChartCache.Instance.chart = Chart.ChartConverter(file.Data, Path.GetTempPath(),file.Extension);
 #endif
                     
                 }

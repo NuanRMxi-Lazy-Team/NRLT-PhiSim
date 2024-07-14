@@ -19,7 +19,7 @@ MonoBehaviour:
     m_Items: []
   m_TableData:
   - m_Id: 3255995195392
-    m_Localized: "\u672C\u6A21\u62DF\u5668\u6CA1\u6709\u4F7F\u7528lchzh3473\u7684Phigros\u6A21\u62DF\u5668"
+    m_Localized: "\u672C\u6A21\u62DF\u5668\u6CA1\u6709\u4F7F\u7528lchzh3473\u7684Phigros\u6A21\u62DF\u5668\n\u4E0D\u4F1A\u7279\u6548\u306E\u70B9\u7F00\u661F\u7A7A\u662F\u6211\u7239\nPhiDot\u9879\u76EE\u662F\u6211\u7237"
     m_Metadata:
       m_Items: []
   - m_Id: 17412089962496
@@ -31,7 +31,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 260103931420672
-    m_Localized: "\u98DE\u821E"
+    m_Localized: NuanR_Mxi Lazy Team PhiSim Next
     m_Metadata:
       m_Items: []
   - m_Id: 715402639302656

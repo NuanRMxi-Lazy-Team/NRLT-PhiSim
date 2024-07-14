@@ -28,8 +28,17 @@ namespace Keiwando.NFSO {
 			//SupportedFileType.PDF,
 			//SupportedFileType.JPEG,
 			//SupportedFileType.PlainText
+#if UNITY_EDITOR
 			SupportedFileType.Pez,
 			SupportedFileType.Zip
+#elif UNITY_STANDALONE_WIN
+			SupportedFileType.Pez,
+			SupportedFileType.Zip
+#elif UNITY_ANDROID
+			SupportedFileType.Any	
+#elif UNITY_IOS
+			SupportedFileType.Any
+#endif
 		};
 	}
 }

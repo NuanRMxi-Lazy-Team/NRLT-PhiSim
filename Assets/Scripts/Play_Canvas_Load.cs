@@ -94,6 +94,23 @@ public class Play_Canvas_Load : MonoBehaviour
             yield return null;
         }
     }
+#elif UNITY_WEBGL
+    IEnumerator MusicPlay(AudioClip music, double time)
+    {
+        bool MusicisPlay = false;
+        AudioSource musicAudioSource = gameObject.AddComponent<AudioSource>();
+        musicAudioSource.clip = music;
+        musicAudioSource.loop = false;//禁用循环播放
+        while (true)
+        {
+            if (time <= System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds && !MusicisPlay)
+            {
+                MusicisPlay = true;
+                musicAudioSource.Play();
+            }
+            yield return null;
+        }
+    }
 #endif
     
     #endregion
@@ -157,6 +174,10 @@ public class Play_Canvas_Load : MonoBehaviour
         StartCoroutine(MusicPlay(chart.music, unixTime));
 #elif UNITY_ANDROID
         NativeAudio.Initialize();
+        StartCoroutine(MusicPlay(chart.music, unixTime));
+#elif UNITY_STANDALONE_WIN
+        StartCoroutine(MusicPlay(chart.music, unixTime));
+#elif UNITY_WEBGL
         StartCoroutine(MusicPlay(chart.music, unixTime));
 #endif
     }

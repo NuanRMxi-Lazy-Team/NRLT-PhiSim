@@ -114,12 +114,12 @@ namespace Phigros_Fanmade
                 //在缓存文件夹下创建一个新的叫"ChartFileCache"的文件夹
                 if (Directory.Exists(cacheFileDirectory))
                 {
-                    if (!Directory.Exists(cacheFileDirectory+ "\\ChartFileCache"))
+                    if (!Directory.Exists(cacheFileDirectory+ "/ChartFileCache"))
                     {
-                        Directory.CreateDirectory(cacheFileDirectory + "\\ChartFileCache");
+                        Directory.CreateDirectory(cacheFileDirectory + "/ChartFileCache");
                     }
                 }
-                cacheFileDirectory += "\\ChartFileCache";
+                cacheFileDirectory += "/ChartFileCache";
                 //清空缓存文件夹
                 DirectoryInfo di = new(cacheFileDirectory);
                 foreach (FileInfo file in di.GetFiles())
@@ -135,8 +135,8 @@ namespace Phigros_Fanmade
                 }
 
                 //将文件解压
-                File.WriteAllBytes(cacheFileDirectory + "\\ChartFileCache.zip",fileData);
-                ZipFile.ExtractToDirectory(cacheFileDirectory + "\\ChartFileCache.zip", cacheFileDirectory);
+                File.WriteAllBytes(cacheFileDirectory + "/ChartFileCache.zip",fileData);
+                ZipFile.ExtractToDirectory(cacheFileDirectory + "/ChartFileCache.zip", cacheFileDirectory);
 
                 //检查目录下是否含有config.json，如果有，读取到内存，否则返回null
                 JSONNode jsonConfig;
@@ -147,7 +147,7 @@ namespace Phigros_Fanmade
                 }
                 else
                 {
-                    jsonConfig = JSON.Parse(File.ReadAllText(cacheFileDirectory + "\\config.json"));
+                    jsonConfig = JSON.Parse(File.ReadAllText(cacheFileDirectory + "/config.json"));
                     //检查是否含有三个必要字段，music，illustration和chart
                     if (jsonConfig["music"] == null || jsonConfig["illustration"] == null ||
                         jsonConfig["chart"] == null)
@@ -180,7 +180,7 @@ namespace Phigros_Fanmade
                 //读取谱面
                 Chart chart = new()
                 {
-                    rawChart = File.ReadAllText(cacheFileDirectory + "\\" + jsonConfig["chart"])
+                    rawChart = File.ReadAllText(cacheFileDirectory + "/" + jsonConfig["chart"])
                 };
                 var jsonChart = JSON.Parse(chart.rawChart);
 
