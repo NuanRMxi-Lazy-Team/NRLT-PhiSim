@@ -35,6 +35,10 @@ MonoBehaviour:
     m_Key: Android_Permission_Prompt
     m_Metadata:
       m_Items: []
+  - m_Id: 27646728193695744
+    m_Key: UI_MessageBox_Accpet
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

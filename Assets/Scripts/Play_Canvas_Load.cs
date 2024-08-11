@@ -119,6 +119,10 @@ public class Play_Canvas_Load : MonoBehaviour
 
     public void DrawScene()
     {
+        //预加载打击音频
+        AudioClip tapAudioClip = Resources.Load<AudioClip>("Audio/tapHit");
+        
+        
         var chart = ChartCache.Instance.chart;
         double unixTime = System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1, 0, 0, 0, 0))
             .TotalMilliseconds + 5000;
@@ -166,6 +170,7 @@ public class Play_Canvas_Load : MonoBehaviour
                 noteGameObject.GetComponent<Play_Note>().fatherJudgeLine = instance;
                 noteGameObject.GetComponent<Play_Note>().note = note;
                 noteGameObject.GetComponent<Play_Note>().playStartUnixTime = unixTime;
+                noteGameObject.GetComponent<Play_Note>().tapHitClip = tapAudioClip;
                 noteGameObject.transform.SetParent(instance.GetComponent<RectTransform>());
             }
         }

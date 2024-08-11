@@ -15,6 +15,7 @@ using UnityEngine.Android;
 
 public class Main_Button_Click : MonoBehaviour
 {
+    public GameObject messageBox;
     // Start is called before the first frame update
     void Start()
     {
@@ -48,6 +49,10 @@ public class Main_Button_Click : MonoBehaviour
         Log.Write("Start On UNITY_STANDALONE_WIN.", LogType.Debug);
 #elif UNITY_WEBGL
         Log.Write("Start On UNITY_WEBGL.", LogType.Debug);
+        //弹出MessageBox
+        GameObject parent = GameObject.Find("Main_Panel");
+        GameObject instance = Instantiate(messageBox, parent.transform);
+        instance.GetComponent<MessageBox_Scripts>().showText = "Unsupperted WEBGL...";
 #endif
         
 
@@ -60,6 +65,7 @@ public class Main_Button_Click : MonoBehaviour
 
     public void LoadChart()
     {
+        
         try
         {
             
@@ -74,13 +80,20 @@ public class Main_Button_Click : MonoBehaviour
 #else
                     ChartCache.Instance.chart = Chart.ChartConverter(file.Data, Path.GetTempPath(),file.Extension);
 #endif
-                    
+                    //弹出MessageBox
+                    GameObject parent = GameObject.Find("Main_Panel");
+                    GameObject instance = Instantiate(messageBox, parent.transform);
+                    instance.GetComponent<MessageBox_Scripts>().showText = "Chart is Loaded";
                 }
             });
         }
         catch (Exception e)
         {
             Log.Write("Unknown errors in: " + e.Message, LogType.Error);
+            //弹出MessageBox
+            GameObject parent = GameObject.Find("Main_Panel");
+            GameObject instance = Instantiate(messageBox, parent.transform);
+            instance.GetComponent<MessageBox_Scripts>().showText = e.Message;
         }
     }
 
@@ -94,6 +107,10 @@ public class Main_Button_Click : MonoBehaviour
         else
         {
             Log.Write("没谱面你播放个集贸（E:Main Not Load Chart)", LogType.Error);
+            //弹出MessageBox
+            GameObject parent = GameObject.Find("Main_Panel");
+            GameObject instance = Instantiate(messageBox, parent.transform);
+            instance.GetComponent<MessageBox_Scripts>().showText = "unknown Chart...";
         }
     }
 #if UNITY_ANDROID

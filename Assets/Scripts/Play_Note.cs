@@ -1,6 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
+using LogWriter;
 using Phigros_Fanmade;
 using UnityEngine;
 
@@ -11,12 +9,19 @@ public class Play_Note : MonoBehaviour
     public RectTransform noteRectTransform;
     public GameObject fatherJudgeLine;
     public double playStartUnixTime;
+    public AudioClip tapHitClip;
+    private AudioSource tapHitAudioSource;
+    private bool hited = false;
 
     // Start is called before the first frame update
     void Start()
     {
         //一些中文
         noteRectTransform.transform.rotation = fatherJudgeLine.GetComponent<Play_JudgeLine>().rectTransform.rotation;
+        tapHitAudioSource = gameObject.AddComponent<AudioSource>();
+        tapHitAudioSource.clip = tapHitClip;
+        tapHitAudioSource.loop = false;
+        
     }
 
     // Update is called once per frame
@@ -53,13 +58,28 @@ public class Play_Note : MonoBehaviour
         if (elapsedTime >= note.clickEndTime / 1000 && isHold)
         {
             //直接摧毁自己
-            Destroy(gameObject);
+            if (!hited)
+            {
+                tapHitAudioSource.Play();
+                hited = true;
+            }
+            
+            //Destroy(gameObject);
+            //弃用摧毁，隐藏自己，修改自己的Alpha
+            gameObject.GetComponent<Renderer>().material.color = new Color(1, 1, 1, 0);
             return 1200;
         }
         else if (elapsedTime >= targetTimeInSeconds && !isHold)
         {
             //直接摧毁自己
-            Destroy(gameObject);
+            if (!hited)
+            {
+                tapHitAudioSource.Play();
+                hited = true;
+            }
+            //Destroy(gameObject);
+            //弃用摧毁，隐藏自己，修改自己的Alpha
+            gameObject.GetComponent<Renderer>().material.color = new Color(1, 1, 1, 0);
             return 0;
             //noteAlpha.a = 0;
             //GetComponent<Renderer>().material.color = noteAlpha;
@@ -77,7 +97,9 @@ public class Play_Note : MonoBehaviour
             yPosition = 1200f;
         }
 
-
-        return (float)(yPosition); //- fatherJudgeLine.GetComponent<Play_JudgeLine>().lastSpeedEvent.floorPosition);
+        float newYPosition = 1080 / 7.5f * note.speedMultiplier * (float)(Note.GetCurTimeSu(elapsedTime, fatherJudgeLine.GetComponent<Play_JudgeLine>().judgeLine.speedChangeList) - note.floorPosition);
+        //Log.Write(newYPosition.ToString());
+        //return (float)(yPosition); //- fatherJudgeLine.GetComponent<Play_JudgeLine>().lastSpeedEvent.floorPosition);
+        return newYPosition;
     }
-}
+} 

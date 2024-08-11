@@ -179,7 +179,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 540
+  orthographic size: 720
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -356,6 +356,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e9df5c12e16da594f99743e9359fd53c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  messageBox: {fileID: 4980384626630249874, guid: f32465e6da8d82040bbac2ac95d178d0, type: 3}
 --- !u!1 &837058452
 GameObject:
   m_ObjectHideFlags: 0
@@ -368,7 +369,7 @@ GameObject:
   - component: {fileID: 837058455}
   - component: {fileID: 837058454}
   m_Layer: 5
-  m_Name: Panel
+  m_Name: Main_Panel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -580,6 +581,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e9df5c12e16da594f99743e9359fd53c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  messageBox: {fileID: 4980384626630249874, guid: f32465e6da8d82040bbac2ac95d178d0, type: 3}
 --- !u!1 &1416249885
 GameObject:
   m_ObjectHideFlags: 0

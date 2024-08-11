@@ -39,6 +39,10 @@ MonoBehaviour:
       this program. If you have already added them, please ignore.
     m_Metadata:
       m_Items: []
+  - m_Id: 27646728193695744
+    m_Localized: I understand
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

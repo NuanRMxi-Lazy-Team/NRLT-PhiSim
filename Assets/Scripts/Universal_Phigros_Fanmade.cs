@@ -131,7 +131,7 @@ namespace Phigros_Fanmade
                 if (Path.GetExtension(FileExtension) != ".zip")
                 {
                     Log.Write("The selected file format is not zip");
-                    return null;
+                    throw new Exception("file format error.");
                 }
 
                 //将文件解压
@@ -143,7 +143,7 @@ namespace Phigros_Fanmade
                 if (!File.Exists(cacheFileDirectory + "/config.json"))
                 {
                     Log.Write("The selected file cannot be parsed into the config. json file");
-                    return null;
+                    throw new Exception("config file error.");
                 }
                 else
                 {
@@ -153,7 +153,7 @@ namespace Phigros_Fanmade
                         jsonConfig["chart"] == null)
                     {
                         Log.Write("Unable to find illustrations, music, or chart files in the selected file");
-                        return null;
+                        throw new Exception("Unable to find illustrations, music, or chart files in the selected file");
                     }
                 }
 
@@ -161,19 +161,19 @@ namespace Phigros_Fanmade
                 if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["music"]))
                 {
                     Log.Write("Load music is Failed");
-                    return null;
+                    throw new Exception("Load music is Failed");
                 }
 
                 if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["illustration"]))
                 {
                     Log.Write("Load illustration is Failed");
-                    return null;
+                    throw new Exception("Load illustration is Failed");
                 }
 
                 if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["chart"]))
                 {
                     Log.Write("Load chart is Failed");
-                    return null;
+                    throw new Exception("Load chart is Failed");
                 }
 
 
@@ -425,7 +425,7 @@ namespace Phigros_Fanmade
             catch (Exception ex)
             {
                 Log.Write(ex.Message, LogType.Error);
-                return null; //未知问题结束运行
+                throw ex;
             }
         }
         #endregion
@@ -441,7 +441,7 @@ namespace Phigros_Fanmade
         Official_V1,
         RePhiEdit_V400,
         PhiEdit_V0,
-        SPCNRLT_V1
+        SPCNRLT
     }
 
     /// <summary>
