@@ -1,5 +1,4 @@
 using System.Collections;
-using System.IO;
 using LogWriter;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -18,12 +17,29 @@ public class Play_Canvas_Load : MonoBehaviour
     public GameObject HoldNote;
     public GameObject DragNote;
     public GameObject FlickNote;
+    //public Camera camera;
 
     // Start is called before the first frame update
     void Start()
     {
         //ChartCache.Instance.chart = Chart.ChartConverter(File.ReadAllBytes("D:\\PhiOfaChart\\SMS.zip"), "D:\\PhiOfaChart",".zip");
-        
+        float screenWidth = Screen.width;
+        float screenHeight = Screen.height;
+
+        //计算宽高比
+        float aspectRatio = screenWidth / screenHeight;
+
+        //设置目标宽度为屏幕宽度
+        float targetWidth = Screen.width;
+
+        //计算正交大小
+        float orthographicSize = targetWidth / (2 * aspectRatio);
+
+        //设置摄像机的正交大小
+        Camera.main.orthographicSize = orthographicSize;
+
+        //输出结果到DEBUGLOG
+        Log.Write("Calculated Orthographic Size: " + orthographicSize, LogType.Debug);
         //检查缓存中是否存在谱面
         if (ChartCache.Instance.chart != null)
         {
@@ -114,8 +130,6 @@ public class Play_Canvas_Load : MonoBehaviour
 #endif
     
     #endregion
-    
-
 
     public void DrawScene()
     {

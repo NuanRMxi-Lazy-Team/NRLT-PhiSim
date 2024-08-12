@@ -1,16 +1,15 @@
 using System;
-using System.IO;
 using UnityEngine;
 using LogWriter;
 using LogType = LogWriter.LogType;
 using UnityEngine.Localization.Settings;
 using Phigros_Fanmade;
 using UnityEngine.SceneManagement;
-using UnityEditor;
 using Keiwando.NFSO;
 
 #if UNITY_ANDROID
 using UnityEngine.Android;
+using System.IO;
 #endif
 
 public class Main_Button_Click : MonoBehaviour
@@ -57,7 +56,32 @@ public class Main_Button_Click : MonoBehaviour
         
 
         #endregion
+
+        #region 屏幕适配相关
         
+        // 获取屏幕的Safe Area
+        Rect safeArea = Screen.safeArea;
+
+        // 将Safe Area转换为相对坐标
+        Vector2 anchorMin = safeArea.position;
+        Vector2 anchorMax = safeArea.position + safeArea.size;
+        anchorMin.x /= Screen.width;
+        anchorMin.y /= Screen.height;
+        anchorMax.x /= Screen.width;
+        anchorMax.y /= Screen.height;
+
+        // 获取RectTransform组件
+        RectTransform rectTransform = GetComponent<RectTransform>();
+
+        // 设置锚点以适应Safe Area
+        rectTransform.anchorMin = anchorMin;
+        rectTransform.anchorMax = anchorMax;
+
+        // 输出Safe Area信息
+        Log.Write("Safe Area: " + safeArea,LogType.Debug);
+        
+
+        #endregion
         //设置移动模式
         ChartCache.Instance.moveMode = ChartCache.MoveMode.WhatTheFuck;
     }

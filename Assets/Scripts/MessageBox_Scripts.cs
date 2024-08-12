@@ -1,5 +1,7 @@
 using TMPro;
 using UnityEngine;
+using LogWriter;
+using LogType = LogWriter.LogType;
 
 public class MessageBox_Scripts : MonoBehaviour
 {
@@ -10,6 +12,7 @@ public class MessageBox_Scripts : MonoBehaviour
     void Start()
     {
         text.text = showText;
+        Log.Write("MessageBox_Scripts Start", LogType.Debug);
     }
 
     // Update is called once per frame

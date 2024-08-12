@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using SimpleJSON;
 using System;
+using System.Linq;
 using JetBrains.Annotations;
 using LogWriter;
 using LogType = LogWriter.LogType;
@@ -383,8 +384,17 @@ namespace Phigros_Fanmade
                                 x = (float)noteList[j]["positionX"] * 108f,
                                 speedMultiplier = noteList[j]["speed"],
                                 above = setAbove,
-                                floorPosition = Note.GetCurTimeSu(noteClickStartTime, judgeLine.speedChangeList)
+                                //floorPosition = Note.GetCurTimeSu(noteClickStartTime, judgeLine.speedChangeList) 这是临时修改。
+                                floorPosition = CoordinateTransformer.TransformY(float.Parse(noteList[j]["floorPosition"].ToString()))
                             });
+                            //test code
+                            if (CoordinateTransformer.TransformY(float.Parse(noteList[j]["floorPosition"].ToString())) != judgeLine.noteList.Last().floorPosition)
+                            {
+                                Log.Write("Error in note floor position calculation",LogType.Debug);
+                                Log.Write(CoordinateTransformer.TransformY(float.Parse(noteList[j]["floorPosition"].ToString())).ToString(),LogType.Debug);
+                                Log.Write(judgeLine.noteList.Last().floorPosition.ToString(),LogType.Debug);
+                            }
+                            
                         }
 
                         if (setAbove)

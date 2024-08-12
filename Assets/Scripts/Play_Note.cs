@@ -1,4 +1,3 @@
-using LogWriter;
 using Phigros_Fanmade;
 using UnityEngine;
 
@@ -97,9 +96,9 @@ public class Play_Note : MonoBehaviour
             yPosition = 1200f;
         }
 
-        float newYPosition = 1080 / 7.5f * note.speedMultiplier * (float)(Note.GetCurTimeSu(elapsedTime, fatherJudgeLine.GetComponent<Play_JudgeLine>().judgeLine.speedChangeList) - note.floorPosition);
+        //float newYPosition = 1080 / 7.5f * note.speedMultiplier * (float)(Note.GetCurTimeSu(elapsedTime, fatherJudgeLine.GetComponent<Play_JudgeLine>().judgeLine.speedChangeList) - note.floorPosition);
         //Log.Write(newYPosition.ToString());
-        //return (float)(yPosition); //- fatherJudgeLine.GetComponent<Play_JudgeLine>().lastSpeedEvent.floorPosition);
-        return newYPosition;
+        return (float)(yPosition); //- fatherJudgeLine.GetComponent<Play_JudgeLine>().lastSpeedEvent.floorPosition);
+        //return newYPosition;
     }
 } 
