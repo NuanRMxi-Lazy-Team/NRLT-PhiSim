@@ -1,4 +1,6 @@
+using System.Threading.Tasks;
 using Phigros_Fanmade;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Play_Note : MonoBehaviour
@@ -11,6 +13,7 @@ public class Play_Note : MonoBehaviour
     public AudioClip tapHitClip;
     private AudioSource tapHitAudioSource;
     private bool hited = false;
+    private bool hitEnd = false;
 
     // Start is called before the first frame update
     void Start()
@@ -20,12 +23,12 @@ public class Play_Note : MonoBehaviour
         tapHitAudioSource = gameObject.AddComponent<AudioSource>();
         tapHitAudioSource.clip = tapHitClip;
         tapHitAudioSource.loop = false;
-        
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (hitEnd) return;
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
         noteRectTransform.anchoredPosition = new Vector3(note.x,
             CalculateYPosition(
@@ -33,6 +36,7 @@ public class Play_Note : MonoBehaviour
                 fatherJudgeLine.GetComponent<Play_JudgeLine>().lastSpeedEvent.startValue,
                 (System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds) -
                 playStartUnixTime), noteRectTransform.transform.position.z);
+        
     }
 
     /// <summary>
@@ -56,16 +60,10 @@ public class Play_Note : MonoBehaviour
         // 如果已经过去的时间大于目标时间，那么直接摧毁自己
         if (elapsedTime >= note.clickEndTime / 1000 && isHold)
         {
-            //直接摧毁自己
-            if (!hited)
-            {
-                tapHitAudioSource.Play();
-                hited = true;
-            }
-            
             //Destroy(gameObject);
             //弃用摧毁，隐藏自己，修改自己的Alpha
             gameObject.GetComponent<Renderer>().material.color = new Color(1, 1, 1, 0);
+            hitEnd = true;
             return 1200;
         }
         else if (elapsedTime >= targetTimeInSeconds && !isHold)
@@ -79,13 +77,14 @@ public class Play_Note : MonoBehaviour
             //Destroy(gameObject);
             //弃用摧毁，隐藏自己，修改自己的Alpha
             gameObject.GetComponent<Renderer>().material.color = new Color(1, 1, 1, 0);
+            hitEnd = true;
             return 0;
             //noteAlpha.a = 0;
             //GetComponent<Renderer>().material.color = noteAlpha;
         }
 
         // 根据速度（像素/秒）计算y坐标
-        float yPosition = (float)(speed * ((note.clickStartTime / 1000) - elapsedTime) * 648); // 这里加入了速度单位648像素/秒，648是1080 * 0.6
+        float yPosition = (float)(speed * (note.clickStartTime / 1000 - elapsedTime) * 648); // 这里加入了速度单位648像素/秒，648是1080 * 0.6
         if (isHold)
         {
             yPosition += 1200f;
@@ -93,8 +92,15 @@ public class Play_Note : MonoBehaviour
 
         if (elapsedTime <= note.clickEndTime / 1000 && elapsedTime >= targetTimeInSeconds && isHold)
         {
+            //直接摧毁自己
+            if (!hited)
+            {
+                tapHitAudioSource.Play();
+                hited = true;
+            }
             yPosition = 1200f;
         }
+        
 
         //float newYPosition = 1080 / 7.5f * note.speedMultiplier * (float)(Note.GetCurTimeSu(elapsedTime, fatherJudgeLine.GetComponent<Play_JudgeLine>().judgeLine.speedChangeList) - note.floorPosition);
         //Log.Write(newYPosition.ToString());

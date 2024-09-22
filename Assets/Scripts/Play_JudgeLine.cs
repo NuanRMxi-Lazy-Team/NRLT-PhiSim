@@ -194,26 +194,17 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为妙）</param>
     IEnumerator MoveXOverTime(float startXValue, float endXValue, float duration)
     {
-        float startTime = Time.time;
-        while (Time.time < startTime + duration)
+        DateTime startTime = DateTime.UtcNow;
+        while ((DateTime.UtcNow - startTime).TotalSeconds < duration)
         {
+            var t = (DateTime.UtcNow - startTime).TotalSeconds / duration;
             rectTransform.anchoredPosition = Vector3.Lerp(
-                new Vector3(
-                    startXValue, 
-                    rectTransform.anchoredPosition.y
-                    ),
-                new Vector3(
-                    endXValue, 
-                    rectTransform.anchoredPosition.y
-                    ), 
-                (Time.time - startTime) / duration);
+                new Vector3(startXValue, rectTransform.anchoredPosition.y),
+                new Vector3(endXValue, rectTransform.anchoredPosition.y),
+                (float)t);
             yield return null;
         }
-
-        rectTransform.anchoredPosition = new Vector3(
-            endXValue,
-            rectTransform.transform.position.y
-            );
+        rectTransform.anchoredPosition = new Vector3(endXValue, rectTransform.anchoredPosition.y);
     }
 
     /// <summary>
@@ -224,26 +215,17 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为妙）</param>
     IEnumerator MoveYOverTime(float startYValue, float endYValue, float duration)
     {
-        float startTime = Time.time;
-        while (Time.time < startTime + duration)
+        DateTime startTime = DateTime.UtcNow;
+        while ((DateTime.UtcNow - startTime).TotalSeconds < duration)
         {
+            var t = (DateTime.UtcNow - startTime).TotalSeconds / duration;
             rectTransform.anchoredPosition = Vector3.Lerp(
-                new Vector3(
-                    rectTransform.anchoredPosition.x, 
-                    startYValue
-                    ),
-                new Vector3(
-                    rectTransform.anchoredPosition.x, 
-                    endYValue
-                    ), 
-                (Time.time - startTime) / duration);
+                new Vector3(rectTransform.anchoredPosition.x, startYValue),
+                new Vector3(rectTransform.anchoredPosition.x, endYValue),
+                (float)t);
             yield return null;
         }
-
-        rectTransform.anchoredPosition = new Vector3(
-            rectTransform.anchoredPosition.x, 
-            endYValue
-            );
+        rectTransform.anchoredPosition = new Vector3(rectTransform.anchoredPosition.x, endYValue);
     }
 
     /// <summary>
@@ -254,23 +236,17 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为妙）</param>
     IEnumerator RotateOverTime(float startRotate, float endRotate, float duration)
     {
-        float startTime = Time.time;
-        while (Time.time < startTime + duration)
+        DateTime startTime = DateTime.UtcNow;
+        while ((DateTime.UtcNow - startTime).TotalSeconds < duration)
         {
-            ;
-            //rTf.rotation = Quaternion.Lerp(Quaternion.Euler(0, 0, startRotate), Quaternion.Euler(0, 0, counterClockwiseAngle), (Time.time - startTime) / duration);
-            rectTransform.rotation =
-                Quaternion.Euler(
-                    0,
-                    0,
-                    Mathf.Lerp(
-                        startRotate, 
-                        endRotate, 
-                        (Time.time - startTime) / duration
-                    ));
+            var t = (DateTime.UtcNow - startTime).TotalSeconds / duration;
+            rectTransform.rotation = Quaternion.Euler(
+                0,
+                0,
+                Mathf.Lerp(startRotate, endRotate, (float)t));
             yield return null;
         }
-        rectTransform.transform.rotation = Quaternion.Euler(0, 0, endRotate);
+        rectTransform.rotation = Quaternion.Euler(0, 0, endRotate);
     }
 
     /// <summary>
@@ -281,15 +257,11 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为妙）</param>
     IEnumerator FadeOverTime(float startAlpha, float endAlpha, float duration)
     {
-        // 计算总时间
-        float time = 0;
-        while (time < duration)
+        DateTime startTime = DateTime.UtcNow;
+        while ((DateTime.UtcNow - startTime).TotalSeconds < duration)
         {
-            // 更新时间
-            time += Time.deltaTime;
-            // 计算新的透明度
-            float newOpacity = Mathf.Lerp(startAlpha, endAlpha, (float)(time / duration));
-            // 设置新的透明度
+            var t = (DateTime.UtcNow - startTime).TotalSeconds / duration;
+            float newOpacity = Mathf.Lerp(startAlpha, endAlpha, (float)t);
             Color color = GetComponent<Renderer>().material.color;
             color.a = newOpacity;
             GetComponent<Renderer>().material.color = color;

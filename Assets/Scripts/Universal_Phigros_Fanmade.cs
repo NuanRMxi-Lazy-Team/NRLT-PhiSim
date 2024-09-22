@@ -73,11 +73,15 @@ namespace Phigros_Fanmade
             try
             {
                 // WAV文件的头部是44字节
-                int samples = (wavBytes.Length - 44) / 2; // 16-bit stereo
-                AudioClip clip = AudioClip.Create("MySound", samples, 2, 44100, false);
+                int headerOffset = 44;
+                int sampleRate = BitConverter.ToInt32(wavBytes, 24);
+                int channels = BitConverter.ToInt16(wavBytes, 22);
+                int samples = (wavBytes.Length - headerOffset) / 2; // 16-bit stereo
+
+                AudioClip clip = AudioClip.Create("MySound", samples / channels, channels, sampleRate, false);
                 float[] data = new float[samples];
 
-                int offset = 44; // WAV头部
+                int offset = headerOffset; // WAV头部
                 for (int i = 0; i < samples; i++)
                 {
                     data[i] = (short)(wavBytes[offset] | wavBytes[offset + 1] << 8) / 32768.0F;
