@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using LogType = LogWriter.LogType;
 using Phigros_Fanmade;
+using System.IO;
 #if UNITY_ANDROID
 using E7.Native;
 #endif
@@ -17,11 +18,27 @@ public class Play_Canvas_Load : MonoBehaviour
     public GameObject HoldNote;
     public GameObject DragNote;
     public GameObject FlickNote;
+    
+    //背景插画
+    public GameObject Illistration;
     //public Camera camera;
 
     // Start is called before the first frame update
     void Start()
     {
+        // 应用插画
+        Illistration.GetComponent<SpriteRenderer>().sprite = ChartCache.Instance.chart.Illustration;
+        
+        
+        // 从背景插画中获得材质，应用高斯模糊
+        Material material = Illistration.GetComponent<SpriteRenderer>().material;
+        Texture texture = Illistration.GetComponent<SpriteRenderer>().sprite.texture;
+        material.SetVector("_MainTex_TexelSize", new Vector4(1.0f / texture.width, 1.0f / texture.height, 0, 0));
+
+        // 增加高斯模糊的强度
+        material.SetFloat("_BlurSize", 5.0f); // 模糊强度设置，往似里写
+        material.SetFloat("_Brightness", 0.6f); //图片亮度，适当调整
+        
         //ChartCache.Instance.chart = Chart.ChartConverter(File.ReadAllBytes("D:\\PhiOfaChart\\SMS.zip"), "D:\\PhiOfaChart",".zip");
         float screenWidth = Screen.width;
         float screenHeight = Screen.height;

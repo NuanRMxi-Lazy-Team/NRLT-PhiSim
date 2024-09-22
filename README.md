@@ -22,7 +22,7 @@ NuanR_Mxi Lazy Team Phigros Simulator，Unity Phigros Sim的重写版本
 |      参数      |              说明              |
 |:------------:|:----------------------------:|
 |    music     |    谱面对应歌曲，当前只能使用 `wav` 格式    |
-| illustration |        谱面曲绘，但是它现在不会起效        |
+| illustration |             谱面曲绘             |
 |    chart     | 谱面文件，我们会自动识别谱面类型，只要他是合法的json |
 
 如果导入的谱面有误，我们，，，我们不会怎么样，因为我没有做提示。  
@@ -32,7 +32,7 @@ NuanR_Mxi Lazy Team Phigros Simulator，Unity Phigros Sim的重写版本
 
 ## 声明
 软件本体与鸽游官方没有任何关系，所引用素材均无授权，如有侵权，请及时将修改通知发送到以下邮箱：  
-2308425927@qq.com  
+nrlt@nuanr-mxi.com  
 软件源码除插件外，使用MIT License协议开源，插件协议请直接查看插件的协议，如您因为没有遵守插件协议导致的任何麻烦均与本项目无关。  
 贡献请在Github上提交PR，有问题发issue，若之issue会被直接关闭。
 

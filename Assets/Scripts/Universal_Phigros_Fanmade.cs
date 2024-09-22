@@ -99,6 +99,18 @@ namespace Phigros_Fanmade
         }
         #endregion
 
+        #region 曲绘部分
+
+        private static Sprite BytesToSprite(byte[] bytes)
+        {
+            Texture2D texture = new(1, 1);
+            texture.LoadImage(bytes);
+            return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+        }
+        
+
+        #endregion
+
         //Type
         public ChartType chartType { get; set; }
 
@@ -107,7 +119,7 @@ namespace Phigros_Fanmade
 
         //Data
         public AudioClip music { get; set; }
-        public Image Illustration { get; set; }
+        public Sprite Illustration { get; set; }
         public string rawChart { get; set; }
 
         #region 谱面转换区块
@@ -191,7 +203,7 @@ namespace Phigros_Fanmade
 
                 //载入音频和插图
                 chart.music = WavToAudioClip(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["music"]));
-                //chart.Illustration = Resources.Load<Image>(jsonConfig["illustration"]); 暂不支持
+                chart.Illustration = BytesToSprite(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["illustration"]));
 
                 //谱面类型识别
                 if (jsonChart["formatVersion"] == 3)
