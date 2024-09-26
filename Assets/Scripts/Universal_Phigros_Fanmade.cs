@@ -94,7 +94,7 @@ namespace Phigros_Fanmade
             }
             catch (Exception ex)
             {
-                Log.Write("WavToAudioClip error:" + ex.ToString(), LogType.Error);
+                Log.Write("WavToAudioClip error:" + ex, LogType.Error);
                 return null;
             }
         }
@@ -219,7 +219,10 @@ namespace Phigros_Fanmade
                 chart.music = WavToAudioClip(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["music"]));
                 chart.Illustration =
                     BytesToSprite(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["illustration"]));
-
+                //获取音频时长，单位毫秒
+                double musicLength = chart.music.length * 1000;
+                
+                
                 //谱面类型识别
                 if (jsonChart["formatVersion"] == 3)
                 {
@@ -257,7 +260,7 @@ namespace Phigros_Fanmade
                                     judgeLineBpm); //转换T为毫秒
 
                             var eventEndTime = judgeLineMoveEventList[j]["endTime"] >= 1000000000.0
-                                ? eventStartTime + OfficialV3_TimeConverter(1, judgeLineBpm) * 64 * 4
+                                ? musicLength //超界
                                 : OfficialV3_TimeConverter(judgeLineMoveEventList[j]["endTime"], judgeLineBpm);
 
                             //转换与添加坐标系
@@ -298,7 +301,7 @@ namespace Phigros_Fanmade
                                     judgeLineBpm); //转换T为毫秒
 
                             var eventEndTime = judgeLineAngleChangeEventList[j]["endTime"] >= 1000000000.0
-                                ? eventStartTime + OfficialV3_TimeConverter(1, judgeLineBpm) * 64 * 4 //超界
+                                ? musicLength //超界
                                 : OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒
 
@@ -322,7 +325,7 @@ namespace Phigros_Fanmade
                                     judgeLineBpm); //转换T为毫秒
 
                             var eventEndTime = judgeLineAlphaChangeEventList[j]["endTime"] >= 1000000000.0
-                                ? eventStartTime + OfficialV3_TimeConverter(1, judgeLineBpm) * 64 * 4
+                                ? musicLength //超界
                                 : OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒 
 
@@ -346,7 +349,7 @@ namespace Phigros_Fanmade
                                     judgeLineBpm); //转换T为毫秒 
 
                             double eventEndTime = judgeLineSpeedChangeEventList[j]["endTime"] >= 1000000000.0
-                                ? eventStartTime + OfficialV3_TimeConverter(1, judgeLineBpm) * 64 * 4
+                                ? musicLength //超界
                                 : OfficialV3_TimeConverter(judgeLineSpeedChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒 
 
@@ -457,7 +460,7 @@ namespace Phigros_Fanmade
             catch (Exception ex)
             {
                 Log.Write(ex.Message, LogType.Error);
-                throw ex;
+                return null;
             }
         }
 
@@ -528,29 +531,38 @@ namespace Phigros_Fanmade
             public double floorPosition { get; set; } = 0.0;
 
             /// <summary>
-            /// 计算SpeedEventFloorPosition主要方法
+            /// 计算 SpeedEvent 的 FloorPosition 的主要方法
             /// </summary>
-            /// <param name="originSpeedList"></param>
+            /// <param name="originSpeedList">原始的速度事件列表</param>
             /// <returns>经过更新的流速变更列表</returns>
             public static List<SpeedEvent> CalcFloorPosition(List<SpeedEvent> originSpeedList)
             {
-                var speedList = new List<SpeedEvent>(originSpeedList);
+                var speedList = new List<SpeedEvent>(originSpeedList);  // 创建副本
+
+                // 遍历每个速度事件，计算 floorPosition
                 for (int i = 0; i < speedList.Count - 1; i++)
                 {
-                    var lastEvent = speedList[i];
-                    var curEvent = speedList[i + 1];
+                    var lastEvent = speedList[i];       // 上一个事件
+                    var curEvent = speedList[i + 1];    // 当前事件
 
+                    // 获取上一个事件的时间段
                     double lastStartTime = lastEvent.startTime;
                     double lastEndTime = lastEvent.endTime;
+
+                    // 当前事件的开始时间
                     double curStartTime = curEvent.startTime;
 
+                    // 计算当前事件的 floorPosition
                     curEvent.floorPosition = lastEvent.floorPosition +
+                                             // 梯形积分：上一个事件的速度积分
                                              (lastEvent.endValue + lastEvent.startValue) * (lastEndTime - lastStartTime) / 2 +
+                                             // 区间外线性距离：上一个事件结束到当前事件开始
                                              lastEvent.endValue * (curStartTime - lastEndTime);
                 }
 
                 return speedList;
             }
+
         }
     }
 
@@ -614,6 +626,8 @@ namespace Phigros_Fanmade
 
             return floorPosition;
         }
+
+
     }
 
     /// <summary>
