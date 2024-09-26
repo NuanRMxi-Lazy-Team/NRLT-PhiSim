@@ -1,10 +1,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using JetBrains.Annotations;
 using LogWriter;
 using UnityEngine;
 using Phigros_Fanmade;
+using TMPro;
 using Unity.VisualScripting;
 using Event = Phigros_Fanmade.Event;
 using LogType = LogWriter.LogType;
@@ -14,12 +16,16 @@ public class Play_JudgeLine : MonoBehaviour
     //获取初始参数
     public JudgeLine judgeLine;
     public double playStartTime;
-
-    public int whoami = 0;
+    public Play_GameManager GameManager;
+    
     
     //self
+    public int whoami = 0;
     public RectTransform rectTransform;
-
+    private Renderer lineRenderer;
+    public TMP_Text lineID;
+    
+    
     //SPEvent
     public Event.SpeedEvent lastSpeedEvent = new()
     {
@@ -32,7 +38,8 @@ public class Play_JudgeLine : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-
+        lineRenderer = GetComponent<Renderer>();
+        lineID.text = whoami.ToString();
         Log.Write(whoami.ToString(),LogType.Debug);
         if (ChartCache.Instance.moveMode == ChartCache.MoveMode.WhatTheFuck)
         {
@@ -42,22 +49,21 @@ public class Play_JudgeLine : MonoBehaviour
             StartCoroutine(RotateEventReader());
             StartCoroutine(SP_SpeedEventReadr());
         }
-        
     }
+    
 
     #region EventReadr
 
     /// <summary>
     /// X移动事件读取器
     /// </summary>
-    IEnumerator XMoveEventReader()
+    private IEnumerator XMoveEventReader()
     {
         int i = 0;
         var xMoveList = judgeLine.xMoveList;
         while (true)
         {
-            var now = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds;
-            float playToNow = (float)(now - playStartTime);
+            float playToNow = (float)(GameManager.lastTimeUnix - playStartTime);
             if (!(i <= xMoveList.Count - 1))
             {
                 break;
@@ -74,20 +80,17 @@ public class Play_JudgeLine : MonoBehaviour
             yield return null;
         }
     }
-    
-
 
     /// <summary>
     /// Y移动事件读取器
     /// </summary>
-    IEnumerator YMoveEventReader()
+    private IEnumerator YMoveEventReader()
     {
         int i = 0;
         var yMoveList = judgeLine.yMoveList;
         while (true)
         {
-            var now = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
-                      playStartTime;
+            var now = GameManager.lastTimeUnix - playStartTime;
             if (!(i <= yMoveList.Count - 1))
             {
                 break;
@@ -106,14 +109,16 @@ public class Play_JudgeLine : MonoBehaviour
         }
     }
 
-    IEnumerator RotateEventReader()
+    /// <summary>
+    /// 旋转事件读取器
+    /// </summary>
+    private IEnumerator RotateEventReader()
     {
         int i = 0;
         var angleChangeList = judgeLine.angleChangeList;
         while (true)
         {
-            var now = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
-                      playStartTime;
+            var now = GameManager.lastTimeUnix - playStartTime;
             if (!(i <= angleChangeList.Count - 1))
             {
                 break;
@@ -132,14 +137,13 @@ public class Play_JudgeLine : MonoBehaviour
         }
     }
     
-    IEnumerator AlphaEventReader()
+    private IEnumerator AlphaEventReader()
     {
         int i = 0;
         var alphaChangeList = judgeLine.alphaChangeList;
         while (true)
         {
-            var now = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
-                      playStartTime;
+            var now = GameManager.lastTimeUnix - playStartTime;
             if (!(i <= alphaChangeList.Count - 1))
             {
                 break;
@@ -158,14 +162,13 @@ public class Play_JudgeLine : MonoBehaviour
         }
     }
     
-    IEnumerator SP_SpeedEventReadr()
+    private IEnumerator SP_SpeedEventReadr()
     {
         int i = 0;
         var speedEventList = judgeLine.speedChangeList;
         while (true)
         {
-            var now = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds -
-                      playStartTime;
+            var now = GameManager.lastTimeUnix - playStartTime;
             if (!(i <= speedEventList.Count - 1))
             {
                 break;
@@ -178,11 +181,8 @@ public class Play_JudgeLine : MonoBehaviour
             yield return null;
         }
     }
-    
-    
 
     #endregion
-
 
     #region judgeLineMover
 
@@ -191,13 +191,13 @@ public class Play_JudgeLine : MonoBehaviour
     /// </summary>
     /// <param name="startXValue">开始时X位置</param>
     /// <param name="endXValue">结束时X位置</param>
-    /// <param name="duration">指定经过时间（单位为妙）</param>
+    /// <param name="duration">指定经过时间（单位为秒）</param>
     IEnumerator MoveXOverTime(float startXValue, float endXValue, float duration)
     {
-        DateTime startTime = DateTime.UtcNow;
-        while ((DateTime.UtcNow - startTime).TotalSeconds < duration)
+        double startTime = GameManager.lastTimeUnix;
+        while ((GameManager.lastTimeUnix - startTime) / 1000 < duration)
         {
-            var t = (DateTime.UtcNow - startTime).TotalSeconds / duration;
+            var t = (GameManager.lastTimeUnix - startTime) / 1000 / duration;
             rectTransform.anchoredPosition = Vector3.Lerp(
                 new Vector3(startXValue, rectTransform.anchoredPosition.y),
                 new Vector3(endXValue, rectTransform.anchoredPosition.y),
@@ -215,10 +215,10 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为妙）</param>
     IEnumerator MoveYOverTime(float startYValue, float endYValue, float duration)
     {
-        DateTime startTime = DateTime.UtcNow;
-        while ((DateTime.UtcNow - startTime).TotalSeconds < duration)
+        double startTime = GameManager.lastTimeUnix;
+        while ((GameManager.lastTimeUnix - startTime) / 1000 < duration)
         {
-            var t = (DateTime.UtcNow - startTime).TotalSeconds / duration;
+            var t = (GameManager.lastTimeUnix - startTime) / 1000 / duration;
             rectTransform.anchoredPosition = Vector3.Lerp(
                 new Vector3(rectTransform.anchoredPosition.x, startYValue),
                 new Vector3(rectTransform.anchoredPosition.x, endYValue),
@@ -236,10 +236,10 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为妙）</param>
     IEnumerator RotateOverTime(float startRotate, float endRotate, float duration)
     {
-        DateTime startTime = DateTime.UtcNow;
-        while ((DateTime.UtcNow - startTime).TotalSeconds < duration)
+        double startTime = GameManager.lastTimeUnix;
+        while ((GameManager.lastTimeUnix - startTime) / 1000 < duration)
         {
-            var t = (DateTime.UtcNow - startTime).TotalSeconds / duration;
+            var t = (GameManager.lastTimeUnix - startTime) / 1000 / duration;
             rectTransform.rotation = Quaternion.Euler(
                 0,
                 0,
@@ -257,14 +257,15 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为妙）</param>
     IEnumerator FadeOverTime(float startAlpha, float endAlpha, float duration)
     {
-        DateTime startTime = DateTime.UtcNow;
-        while ((DateTime.UtcNow - startTime).TotalSeconds < duration)
+        double startTime = GameManager.lastTimeUnix;
+        while ((GameManager.lastTimeUnix - startTime) / 1000 < duration)
         {
-            var t = (DateTime.UtcNow - startTime).TotalSeconds / duration;
+            var t = (GameManager.lastTimeUnix - startTime) / 1000 / duration;
             float newOpacity = Mathf.Lerp(startAlpha, endAlpha, (float)t);
-            Color color = GetComponent<Renderer>().material.color;
+            Color color = lineRenderer.material.color;
             color.a = newOpacity;
-            GetComponent<Renderer>().material.color = color;
+            lineRenderer.material.color = color;
+            lineID.color = color;
             yield return null;
         }
     }

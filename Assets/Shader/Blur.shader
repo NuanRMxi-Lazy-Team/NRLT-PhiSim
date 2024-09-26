@@ -3,8 +3,8 @@ Shader "Custom/HighQualityGaussianBlurWithBrightness"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _BlurSize ("Blur Size", Float) = 1.0
-        _Brightness ("Brightness", Range(0, 1)) = 1.0 // 控制亮度，1为默认亮度
+        _BlurSize ("Blur Size", Float) = 5.0
+        _Brightness ("Brightness", Range(0, 1)) = 0.6 // 控制亮度，1为默认亮度
     }
     SubShader
     {

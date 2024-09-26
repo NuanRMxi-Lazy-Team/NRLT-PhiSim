@@ -15,14 +15,6 @@ public class MessageBox_Scripts : MonoBehaviour
         Log.Write("MessageBox_Scripts Start", LogType.Debug);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-    
-
-
     public void MessageBoxClose()
     {
         //摧毁自己

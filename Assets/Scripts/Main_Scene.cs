@@ -52,6 +52,8 @@ public class Main_Button_Click : MonoBehaviour
         GameObject parent = GameObject.Find("Main_Panel");
         GameObject instance = Instantiate(messageBox, parent.transform);
         instance.GetComponent<MessageBox_Scripts>().showText = "Unsupperted WEBGL...";
+        //抛出未实现的功能异常
+        throw new NotImplementedException("Unsupperted WEBGL...");
 #endif
         
 

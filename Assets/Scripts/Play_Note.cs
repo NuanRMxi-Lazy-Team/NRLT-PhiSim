@@ -1,28 +1,35 @@
-using System.Threading.Tasks;
+using System.Collections;
+using System;
 using Phigros_Fanmade;
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class Play_Note : MonoBehaviour
 {
     //获取初始参数
     public Note note;
     public RectTransform noteRectTransform;
-    public GameObject fatherJudgeLine;
+    public Play_JudgeLine fatherJudgeLine;
     public double playStartUnixTime;
-    public AudioClip tapHitClip;
-    private AudioSource tapHitAudioSource;
+    [FormerlySerializedAs("tapHitClip")] public AudioClip HitClip;
+    private AudioSource HitAudioSource;
     private bool hited = false;
     private bool hitEnd = false;
+    private Renderer noteRenderer;
 
     // Start is called before the first frame update
     void Start()
     {
-        //一些中文
-        noteRectTransform.transform.rotation = fatherJudgeLine.GetComponent<Play_JudgeLine>().rectTransform.rotation;
-        tapHitAudioSource = gameObject.AddComponent<AudioSource>();
-        tapHitAudioSource.clip = tapHitClip;
-        tapHitAudioSource.loop = false;
+        noteRenderer = gameObject.GetComponent<Renderer>();
+        noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
+        HitAudioSource = gameObject.AddComponent<AudioSource>();
+        HitAudioSource.clip = HitClip;
+        HitAudioSource.loop = false;
+        if (!note.above)
+        {
+            //翻转自身贴图
+            noteRenderer.transform.Rotate(0, 0, 180);
+        }
     }
 
     // Update is called once per frame
@@ -30,14 +37,14 @@ public class Play_Note : MonoBehaviour
     {
         if (hitEnd) return;
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
-        noteRectTransform.anchoredPosition = new Vector3(note.x,
-            CalculateYPosition(
-                note.clickStartTime, 
-                fatherJudgeLine.GetComponent<Play_JudgeLine>().lastSpeedEvent.startValue,
-                (System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds) -
-                playStartUnixTime), noteRectTransform.transform.position.z);
-        
+        float yPos = CalculateYPosition(
+            note.clickStartTime,
+            fatherJudgeLine.lastSpeedEvent.startValue,
+            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - playStartUnixTime);
+        noteRectTransform.anchoredPosition = new Vector2(note.x,
+            yPos);
     }
+
 
     /// <summary>
     /// 计算Y位置
@@ -45,24 +52,25 @@ public class Play_Note : MonoBehaviour
     /// <param name="targetTime"></param>
     /// <param name="speed"></param>
     /// <param name="currentTime"></param>
-    /// <returns></returns>
-    public float CalculateYPosition(double targetTime, float speed, double currentTime)
+    /// <returns>Y Position</returns>
+    private float CalculateYPosition(double targetTime, float speed, double currentTime)
     {
         //检查这是不是hold
         bool isHold = note.clickStartTime != note.clickEndTime;
-        
+
         // 计算已经过去的时间（单位：秒）
         double elapsedTime = currentTime / 1000;
 
         // 计算目标时间（单位：秒）
         double targetTimeInSeconds = targetTime / 1000;
 
-        // 如果已经过去的时间大于目标时间，那么直接摧毁自己
+        // 如果已经过去的时间大于目标时间，那么摧毁渲染器
         if (elapsedTime >= note.clickEndTime / 1000 && isHold)
         {
-            //Destroy(gameObject);
-            //弃用摧毁，隐藏自己，修改自己的Alpha
-            gameObject.GetComponent<Renderer>().material.color = new Color(1, 1, 1, 0);
+            //摧毁渲染器
+            Destroy(noteRenderer);
+            //进入协程，等待音效结束
+            StartCoroutine(WaitForDestroy());
             hitEnd = true;
             return 1200;
         }
@@ -71,40 +79,64 @@ public class Play_Note : MonoBehaviour
             //直接摧毁自己
             if (!hited)
             {
-                tapHitAudioSource.Play();
+                HitAudioSource.Play();
                 hited = true;
             }
-            //Destroy(gameObject);
-            //弃用摧毁，隐藏自己，修改自己的Alpha
-            gameObject.GetComponent<Renderer>().material.color = new Color(1, 1, 1, 0);
+            //摧毁渲染器
+            Destroy(noteRenderer);
+            //进入协程，等待音效结束
+            StartCoroutine(WaitForDestroy());
             hitEnd = true;
             return 0;
-            //noteAlpha.a = 0;
-            //GetComponent<Renderer>().material.color = noteAlpha;
         }
 
         // 根据速度（像素/秒）计算y坐标
-        float yPosition = (float)(speed * (note.clickStartTime / 1000 - elapsedTime) * 648); // 这里加入了速度单位648像素/秒，648是1080 * 0.6
+        //float yPosition = (float)(speed * (note.clickStartTime / 1000 - elapsedTime) * 648 * note.speedMultiplier); // 这里加入了速度单位648像素/秒，648是1080 * 0.6
+        //弃用原直接计算，使用floorPos进行计算。
+        float newYPosition = (float)
+            (
+                Note.GetCurTimeSu(currentTime, fatherJudgeLine.judgeLine.speedChangeList) -
+                note.floorPosition
+                ) * note.speedMultiplier;
         if (isHold)
         {
-            yPosition += 1200f;
+            newYPosition -= 1200f;
+        }
+        if (note.above)
+        {
+            //翻转y坐标
+            newYPosition = -newYPosition;
         }
 
         if (elapsedTime <= note.clickEndTime / 1000 && elapsedTime >= targetTimeInSeconds && isHold)
         {
-            //直接摧毁自己
             if (!hited)
             {
-                tapHitAudioSource.Play();
+                HitAudioSource.Play();
                 hited = true;
             }
-            yPosition = 1200f;
+            newYPosition = -1200f;
+            if (note.above)
+            {
+                //翻转y坐标
+                newYPosition = 1200f;
+            }
         }
         
-
-        //float newYPosition = 1080 / 7.5f * note.speedMultiplier * (float)(Note.GetCurTimeSu(elapsedTime, fatherJudgeLine.GetComponent<Play_JudgeLine>().judgeLine.speedChangeList) - note.floorPosition);
-        //Log.Write(newYPosition.ToString());
-        return (float)(yPosition); //- fatherJudgeLine.GetComponent<Play_JudgeLine>().lastSpeedEvent.floorPosition);
-        //return newYPosition;
+        return newYPosition;
     }
-} 
+    
+    IEnumerator WaitForDestroy()
+    {
+        //记录当前时间
+        double now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        //加上音效时长，获得音效结束时间
+        var endTime = now + HitClip.length * 1000;
+        //等待音效结束
+        while (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < endTime)
+        {
+            yield return null;
+        }
+        Destroy(gameObject);
+    }
+}
