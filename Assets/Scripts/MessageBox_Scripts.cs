@@ -12,7 +12,7 @@ public class MessageBox_Scripts : MonoBehaviour
     void Start()
     {
         text.text = showText;
-        Log.Write("MessageBox_Scripts Start", LogType.Debug);
+        //Log.Write("MessageBox_Scripts Start", LogType.Debug);
     }
 
     public void MessageBoxClose()

@@ -39,7 +39,6 @@ public class Play_Note : MonoBehaviour
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
         float yPos = CalculateYPosition(
             note.clickStartTime,
-            fatherJudgeLine.lastSpeedEvent.startValue,
             DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - playStartUnixTime);
         noteRectTransform.anchoredPosition = new Vector2(note.x,
             yPos);
@@ -53,7 +52,7 @@ public class Play_Note : MonoBehaviour
     /// <param name="speed"></param>
     /// <param name="currentTime"></param>
     /// <returns>Y Position</returns>
-    private float CalculateYPosition(double targetTime, float speed, double currentTime)
+    private float CalculateYPosition(double targetTime, double currentTime)
     {
         //检查这是不是hold
         bool isHold = note.clickStartTime != note.clickEndTime;
@@ -95,7 +94,7 @@ public class Play_Note : MonoBehaviour
         //弃用原直接计算，使用floorPos进行计算。
         float newYPosition = (float)
             (
-                Note.GetCurTimeSu(currentTime, fatherJudgeLine.judgeLine.speedChangeList) -
+                fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(currentTime) -
                 note.floorPosition
                 ) * note.speedMultiplier;
         if (isHold)

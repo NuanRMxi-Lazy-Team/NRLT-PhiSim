@@ -1,12 +1,13 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using LogWriter;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using LogType = LogWriter.LogType;
 using Phigros_Fanmade;
 using TMPro;
-#if UNITY_ANDROID
+#if UNITY_ANDROID && !UNITY_EDITOR_WIN
 using E7.Native;
 #endif
 
@@ -16,6 +17,11 @@ public class Play_GameManager : MonoBehaviour
     public GameObject JudgeLine;
     public GameObject TapNote;
     public GameObject HoldNote;
+    public GameObject HoldHead;
+    public GameObject HoldBody;
+    public GameObject HoldEnd;
+    
+    
     public GameObject DragNote;
     public GameObject FlickNote;
 
@@ -140,7 +146,7 @@ public class Play_GameManager : MonoBehaviour
             script.GameManager = this;
             
             //生成note实例
-
+            List<Note> holdList = new();
             foreach (var note in chart.judgeLineList[i].noteList)
             {
                 GameObject noteGameObject;
@@ -151,9 +157,10 @@ public class Play_GameManager : MonoBehaviour
                         noteGameObject.GetComponent<Play_Note>().HitClip = tapAudioClip;
                         break;
                     case Note.NoteType.Hold:
-                        noteGameObject = Instantiate(HoldNote);
-                        noteGameObject.GetComponent<Play_Note>().HitClip = tapAudioClip;
-                        break;
+                        //noteGameObject = Instantiate(HoldNote);
+                        //noteGameObject.GetComponent<Play_Note>().HitClip = tapAudioClip;
+                        holdList.Add(note);
+                        goto next;
                     case Note.NoteType.Drag:
                         noteGameObject = Instantiate(DragNote);
                         noteGameObject.GetComponent<Play_Note>().HitClip = dragAudioClip;
@@ -175,6 +182,30 @@ public class Play_GameManager : MonoBehaviour
                 
                 //设置父对象
                 noteGameObject.transform.SetParent(instance.GetComponent<RectTransform>());
+                next: ;
+            }
+            
+            //生成Hold
+            foreach (var hold in holdList)
+            {
+                var head = Instantiate(HoldHead);
+                head.GetComponent<Play_HoldHead>().HitClip = tapAudioClip;
+                head.GetComponent<Play_HoldHead>().fatherJudgeLine = script;
+                head.GetComponent<Play_HoldHead>().note = hold;
+                head.GetComponent<Play_HoldHead>().playStartUnixTime = unixTime;
+                head.transform.SetParent(instance.GetComponent<RectTransform>());
+                
+                var body = Instantiate(HoldBody);
+                body.GetComponent<Play_HoldBody>().fatherJudgeLine = script;
+                body.GetComponent<Play_HoldBody>().note = hold;
+                body.GetComponent<Play_HoldBody>().playStartUnixTime = unixTime;
+                body.transform.SetParent(instance.GetComponent<RectTransform>());
+                
+                var end = Instantiate(HoldEnd);
+                end.GetComponent<Play_HoldEnd>().fatherJudgeLine = script;
+                end.GetComponent<Play_HoldEnd>().note = hold;
+                end.GetComponent<Play_HoldEnd>().playStartUnixTime = unixTime;
+                end.transform.SetParent(instance.GetComponent<RectTransform>());
             }
         }
         StartCoroutine(MusicPlay(chart.music, unixTime));

@@ -105,3 +105,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   noteRectTransform: {fileID: 5038615079767699886}
+  fatherJudgeLine: {fileID: 0}
+  playStartUnixTime: 0
+  HitClip: {fileID: 0}

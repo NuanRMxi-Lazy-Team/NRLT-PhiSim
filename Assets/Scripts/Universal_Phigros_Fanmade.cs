@@ -361,7 +361,6 @@ namespace Phigros_Fanmade
                                 startValue = judgeLineSpeedChangeEventList[j]["value"],
                                 endValue = judgeLineSpeedChangeEventList[j]["value"] //官谱速度无任何缓动，只有关键帧
                             });
-                            judgeLine.speedChangeList = Event.SpeedEvent.CalcFloorPosition(judgeLine.speedChangeList);
                         }
 
 
@@ -396,7 +395,7 @@ namespace Phigros_Fanmade
                                     Log.Write(
                                         $"Unknown note types in {noteList[j]}\nThe chart may be damaged",
                                         LogType.Error);
-                                    return null;
+                                    throw new Exception("Unknown note types, Chart may be damaged");
                             }
 
                             //打击时刻转换
@@ -417,9 +416,11 @@ namespace Phigros_Fanmade
                                 x = (float)noteList[j]["positionX"] * 108f,
                                 speedMultiplier = noteList[j]["speed"],
                                 above = setAbove,
-                                floorPosition = Note.GetCurTimeSu(noteClickStartTime, judgeLine.speedChangeList) //这是临时修改。
-                                //floorPosition = CoordinateTransformer.TransformY(float.Parse(noteList[j]["floorPosition"].ToString()))
+                                floorPosition = judgeLine.speedChangeList.GetCurTimeSu(noteClickStartTime) //这是临时修改。
+                                //floorPosition = float.Parse(noteList[j]["floorPosition"].ToString()) * 100f
                             });
+                            //Log.Write("this note FP:" + Note.GetCurTimeSu(noteClickStartTime, judgeLine.speedChangeList)+"\norigin FP:"
+                            //    + noteList[j]["floorPosition"],LogType.Debug);
                         }
 
                         if (setAbove)
@@ -529,21 +530,43 @@ namespace Phigros_Fanmade
         {
             //Special
             public double floorPosition { get; set; } = 0.0;
+        }
+    }
 
+    public static class EventList
+    {
+        public class XMoveList : List<Event.XMove>
+        {
+            
+        }
+        public class YMoveList : List<Event.YMove>
+        {
+            
+        }
+        public class AlphaChangeList : List<Event.AlphaChange>
+        {
+            
+        }
+        public class AngleChangeList : List<Event.AngleChange>
+        {
+            
+        }
+        public class SpeedEventList : List<Event.SpeedEvent>
+        {
             /// <summary>
-            /// 计算 SpeedEvent 的 FloorPosition 的主要方法
+            /// 计算 SpeedEvent 的 FloorPosition
             /// </summary>
-            /// <param name="originSpeedList">原始的速度事件列表</param>
+            /// <param name="speedEvent">速度事件</param>
             /// <returns>经过更新的流速变更列表</returns>
-            public static List<SpeedEvent> CalcFloorPosition(List<SpeedEvent> originSpeedList)
+            public new void Add(Event.SpeedEvent speedEvent)
             {
-                var speedList = new List<SpeedEvent>(originSpeedList);  // 创建副本
+                base.Add(speedEvent);
 
                 // 遍历每个速度事件，计算 floorPosition
-                for (int i = 0; i < speedList.Count - 1; i++)
+                for (int i = 0; i < Count - 1; i++)
                 {
-                    var lastEvent = speedList[i];       // 上一个事件
-                    var curEvent = speedList[i + 1];    // 当前事件
+                    var lastEvent = this[i];       // 上一个事件
+                    var curEvent = this[i + 1];    // 当前事件
 
                     // 获取上一个事件的时间段
                     double lastStartTime = lastEvent.startTime;
@@ -559,10 +582,40 @@ namespace Phigros_Fanmade
                                              // 区间外线性距离：上一个事件结束到当前事件开始
                                              lastEvent.endValue * (curStartTime - lastEndTime);
                 }
-
-                return speedList;
             }
+            
+            /// <summary>
+            /// 获取当前时间的速度积分，计算Note和当前时间的floorPosition的主要方法
+            /// </summary>
+            /// <param name="time">当前时间，单位毫秒</param>
+            /// <returns>从谱面开始到当前时间的总路程</returns>
+            public double GetCurTimeSu(double time)
+            {
+                double floorPosition = 0.0;
+                foreach (var speedEvent in this)
+                {
+                    double startTime = speedEvent.startTime;
+                    double endTime = speedEvent.endTime;
 
+                    if (time <= startTime)
+                    {
+                        break;
+                    }
+
+                    if (time <= endTime)
+                    {
+                        floorPosition += (
+                            speedEvent.startValue + (speedEvent.endValue - speedEvent.startValue) * 
+                            (time - startTime) / (endTime - startTime)
+                            ) * (time - startTime) / 2;
+                        break;
+                    }
+
+                    floorPosition += (speedEvent.startValue + speedEvent.endValue) * (endTime - startTime) / 2;
+                }
+
+                return floorPosition;
+            }
         }
     }
 
@@ -596,38 +649,6 @@ namespace Phigros_Fanmade
         //SP
         public double floorPosition { get; set; }
 
-        /// <summary>
-        /// 获取当前时间的速度积分，计算Note的floorPosition的主要方法
-        /// </summary>
-        /// <param name="time">时间，单位毫秒</param>
-        /// <param name="speedEventList">SpeedEvent列表</param>
-        /// <returns>从谱面开始到当前时间的总路程</returns>
-        public static double GetCurTimeSu(double time, List<Event.SpeedEvent> speedEventList)
-        {
-            double floorPosition = 0.0;
-            foreach (var speedEvent in speedEventList)
-            {
-                double startTime = speedEvent.startTime;
-                double endTime = speedEvent.endTime;
-
-                if (time <= startTime)
-                {
-                    break;
-                }
-
-                if (time <= endTime)
-                {
-                    floorPosition += (speedEvent.startValue + (speedEvent.endValue - speedEvent.startValue) * (time - startTime) / (endTime - startTime)) * (time - startTime) / 2;
-                    break;
-                }
-
-                floorPosition += (speedEvent.startValue + speedEvent.endValue) * (endTime - startTime) / 2;
-            }
-
-            return floorPosition;
-        }
-
-
     }
 
     /// <summary>
@@ -640,7 +661,7 @@ namespace Phigros_Fanmade
         public List<Event.YMove> yMoveList { get; set; } = new();
         public List<Event.AlphaChange> alphaChangeList { get; set; } = new();
         public List<Event.AngleChange> angleChangeList { get; set; } = new();
-        public List<Event.SpeedEvent> speedChangeList { get; set; } = new();
+        public EventList.SpeedEventList speedChangeList { get; set; } = new();
 
         //Note List
         public List<Note> noteList { get; set; } = new();
