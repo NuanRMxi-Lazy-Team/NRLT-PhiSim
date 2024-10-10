@@ -9,6 +9,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using LogWriter;
 using LogType = LogWriter.LogType;
+using UnityEngine.Localization.Settings;
 
 namespace Phigros_Fanmade
 {
@@ -22,9 +23,8 @@ namespace Phigros_Fanmade
         /// <returns>此时间对应的毫秒</returns>
         private static double OfficialV3_TimeConverter(double T, float bpm)
         {
-            double originalTime = (T / bpm) * 1.875; //结果为秒
-            originalTime *= 1000; //转换为毫秒
-            return originalTime; //返回
+            var originalTime = T / bpm * 1.875; //结果为秒
+            return originalTime * 1000; //返回毫秒
         }
 
         /// <summary>
@@ -139,6 +139,8 @@ namespace Phigros_Fanmade
         [CanBeNull]
         public static Chart ChartConverter(byte[] fileData, string cacheFileDirectory, string FileExtension)
         {
+            var table = LocalizationSettings.StringDatabase.GetTable("Languages");
+
             try
             {
                 //在缓存文件夹下创建一个新的叫"ChartFileCache"的文件夹
@@ -153,16 +155,16 @@ namespace Phigros_Fanmade
                 cacheFileDirectory += "/ChartFileCache";
                 //清空缓存文件夹
                 DirectoryInfo di = new(cacheFileDirectory);
-                foreach (FileInfo file in di.GetFiles())
+                foreach (var file in di.GetFiles())
                 {
                     file.Delete();
                 }
 
                 //检查文件扩展名是否为.zip
-                if (Path.GetExtension(FileExtension) != ".zip")
+                if (Path.GetExtension(FileExtension) != ".zip" && Path.GetExtension(FileExtension) != ".pez")
                 {
-                    Log.Write("The selected file format is not zip");
-                    throw new Exception("file format error.");
+                    Log.Write("The selected file format is not support", LogType.Error);
+                    throw new Exception(table.GetEntry("Chart_Format_Err").GetLocalizedString());
                 }
 
                 //将文件解压
@@ -170,59 +172,67 @@ namespace Phigros_Fanmade
                 ZipFile.ExtractToDirectory(cacheFileDirectory + "/ChartFileCache.zip", cacheFileDirectory);
 
                 //检查目录下是否含有config.json，如果有，读取到内存，否则返回null
-                JSONNode jsonConfig;
                 if (!File.Exists(cacheFileDirectory + "/config.json"))
                 {
-                    Log.Write("The selected file cannot be parsed into the config. json file");
-                    throw new Exception("config file error.");
-                }
-                else
-                {
-                    jsonConfig = JSON.Parse(File.ReadAllText(cacheFileDirectory + "/config.json"));
-                    //检查是否含有三个必要字段，music，illustration和chart
-                    if (jsonConfig["music"] == null || jsonConfig["illustration"] == null ||
-                        jsonConfig["chart"] == null)
-                    {
-                        Log.Write("Unable to find illustrations, music, or chart files in the selected file");
-                        throw new Exception("Unable to find illustrations, music, or chart files in the selected file");
-                    }
+                    Log.Write("The selected file cannot be parsed into the config. json file", LogType.Error);
+                    throw new Exception(table.GetEntry("Chart_Config_Err").GetLocalizedString());
                 }
 
+                JSONNode jsonConfig = JSON.Parse(File.ReadAllText(cacheFileDirectory + "/config.json"));
+                //检查是否含有三个必要字段，music，illustration和chart
+                if (jsonConfig["music"] == null || jsonConfig["illustration"] == null ||
+                    jsonConfig["chart"] == null)
+                {
+                    Log.Write("Unable to find illustrations, music, or chart files in the selected file",
+                        LogType.Error);
+                    throw new Exception(table.GetEntry("Chart_Config_Err").GetLocalizedString());
+                }
+
+                string missingFile = table.GetEntry("Chart_Format_Err").GetLocalizedString();
                 //检查参数中的文件都是否存在，若其中一个不存在，报错并返回null
                 if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["music"]))
                 {
                     Log.Write("Load music is Failed");
-                    throw new Exception("Load music is Failed");
+                    throw new Exception(missingFile + "music");
                 }
 
                 if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["illustration"]))
                 {
                     Log.Write("Load illustration is Failed");
-                    throw new Exception("Load illustration is Failed");
+                    throw new Exception(missingFile + "illustration");
                 }
 
                 if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["chart"]))
                 {
                     Log.Write("Load chart is Failed");
-                    throw new Exception("Load chart is Failed");
+                    throw new Exception(missingFile + "chart");
                 }
 
 
                 //读取谱面
                 Chart chart = new()
                 {
-                    rawChart = File.ReadAllText(cacheFileDirectory + "/" + jsonConfig["chart"])
+                    rawChart = File.ReadAllText(cacheFileDirectory +"/" +jsonConfig["chart"])
                 };
                 var jsonChart = JSON.Parse(chart.rawChart);
 
                 //载入音频和插图
                 chart.music = WavToAudioClip(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["music"]));
                 chart.Illustration =
-                    BytesToSprite(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["illustration"]));
+                    BytesToSprite(File.ReadAllBytes(cacheFileDirectory + "/" +jsonConfig["illustration"]));
                 //获取音频时长，单位毫秒
-                double musicLength = chart.music.length * 1000;
+                double musicLength;
+                try
+                {
+                     musicLength = chart.music.length * 1000;
+                }
+                catch (NullReferenceException)
+                {
+                    Log.Write("Load music is Failed", LogType.Error);
+                    throw;
+                }
                 
-                
+
                 //谱面类型识别
                 if (jsonChart["formatVersion"] == 3)
                 {
@@ -241,10 +251,13 @@ namespace Phigros_Fanmade
                         //读取出所有事件
                         var judgeLineMoveEventList =
                             judgeLineList[i]["judgeLineMoveEvents"]; //移动事件，官谱中，XY移动是绑定的
+                        
                         var judgeLineAngleChangeEventList =
                             judgeLineList[i]["judgeLineRotateEvents"]; //旋转事件，代码中重命名为角度变更事件
+                        
                         var judgeLineAlphaChangeEventList =
                             judgeLineList[i]["judgeLineDisappearEvents"]; //判定线消失事件，在代码中重命名为透明度事件
+                        
                         var judgeLineSpeedChangeEventList =
                             judgeLineList[i]["speedEvents"]; //Note流速变更事件
 
@@ -259,9 +272,7 @@ namespace Phigros_Fanmade
                                 : OfficialV3_TimeConverter(judgeLineMoveEventList[j]["startTime"],
                                     judgeLineBpm); //转换T为毫秒
 
-                            var eventEndTime = judgeLineMoveEventList[j]["endTime"] >= 1000000000.0
-                                ? musicLength //超界
-                                : OfficialV3_TimeConverter(judgeLineMoveEventList[j]["endTime"], judgeLineBpm);
+                            var eventEndTime = OfficialV3_TimeConverter(judgeLineMoveEventList[j]["endTime"], judgeLineBpm);
 
                             //转换与添加坐标系
                             var eventXStartValue =
@@ -300,9 +311,7 @@ namespace Phigros_Fanmade
                                 : OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["startTime"],
                                     judgeLineBpm); //转换T为毫秒
 
-                            var eventEndTime = judgeLineAngleChangeEventList[j]["endTime"] >= 1000000000.0
-                                ? musicLength //超界
-                                : OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["endTime"],
+                            var eventEndTime = OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒
 
                             //添加数值到列表
@@ -324,9 +333,7 @@ namespace Phigros_Fanmade
                                 : OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["startTime"],
                                     judgeLineBpm); //转换T为毫秒
 
-                            var eventEndTime = judgeLineAlphaChangeEventList[j]["endTime"] >= 1000000000.0
-                                ? musicLength //超界
-                                : OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["endTime"],
+                            var eventEndTime = OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒 
 
                             //添加数值到列表
@@ -348,9 +355,7 @@ namespace Phigros_Fanmade
                                 : OfficialV3_TimeConverter(judgeLineSpeedChangeEventList[j]["startTime"],
                                     judgeLineBpm); //转换T为毫秒 
 
-                            double eventEndTime = judgeLineSpeedChangeEventList[j]["endTime"] >= 1000000000.0
-                                ? musicLength //超界
-                                : OfficialV3_TimeConverter(judgeLineSpeedChangeEventList[j]["endTime"],
+                            double eventEndTime = OfficialV3_TimeConverter(judgeLineSpeedChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒 
 
                             //添加到列表
@@ -416,7 +421,10 @@ namespace Phigros_Fanmade
                                 x = (float)noteList[j]["positionX"] * 108f,
                                 speedMultiplier = noteList[j]["speed"],
                                 above = setAbove,
-                                floorPosition = judgeLine.speedChangeList.GetCurTimeSu(noteClickStartTime) //这是临时修改。
+                                floorPosition = judgeLine.speedChangeList.GetCurTimeSu(noteClickStartTime), //这是临时修改。
+                                holdEndFloorPosition = noteType == Note.NoteType.Hold
+                                    ? judgeLine.speedChangeList.GetCurTimeSu(noteClickEndTime)
+                                    : null
                                 //floorPosition = float.Parse(noteList[j]["floorPosition"].ToString()) * 100f
                             });
                             //Log.Write("this note FP:" + Note.GetCurTimeSu(noteClickStartTime, judgeLine.speedChangeList)+"\norigin FP:"
@@ -428,40 +436,37 @@ namespace Phigros_Fanmade
                             setAbove = false;
                             goto setNote;
                         }
-
+                        
                         //添加判定线
                         chart.judgeLineList.Add(judgeLine);
                     }
 
                     return chart;
                 }
-                else if (jsonChart["formatVersion"] == 1)
-                {
+                else if (jsonChart["formatVersion"] == 1) {
                     //第一代Phigros官谱
                     Log.Write("Chart Version is Official_V1");
                     chart.chartType = ChartType.Official_V1;
-                    return chart; //暂不支持
+                    throw new NotSupportedException("this version is not supported");
                 }
-                else if (jsonChart["META"] != "" || jsonChart["META"] != null)
-                {
+                else if (jsonChart["META"] != "" || jsonChart["META"] != null) {
                     //第4.0代RPE谱面
                     Log.Write("Chart Version is RePhiEdit_V400, but this chart is not supported.");
                     chart.chartType = ChartType.RePhiEdit_V400;
-                    return chart; //暂不支持
+                    throw new NotSupportedException("this version is not supported");
                 }
-                else
-                {
+                else {
                     //未知的或不支持的文件
                     Log.Write(
                         " The format of this chart may be PhiEdit_V0, but it is not supported and will not be supported in the future");
                     chart.chartType = ChartType.PhiEdit_V0;
-                    return chart; //永不支持，滚出去
+                    throw new NotSupportedException("this version is not supported");
                 }
             }
             catch (Exception ex)
             {
-                Log.Write(ex.Message, LogType.Error);
-                return null;
+                Log.Write(ex.ToString(), LogType.Error);
+                throw;
             }
         }
 
@@ -499,29 +504,30 @@ namespace Phigros_Fanmade
             public double startTime { get; set; }
             public double endTime { get; set; }
         }
+
         /// <summary>
         /// X移动事件
         /// </summary>
-        public class XMove : EventTemplate
-        { }
+        public class XMove : EventTemplate {
+        }
 
         /// <summary>
         /// Y移动事件
         /// </summary>
-        public class YMove : EventTemplate
-        { }
+        public class YMove : EventTemplate {
+        }
 
         /// <summary>
         /// 透明度变化事件
         /// </summary>
-        public class AlphaChange : EventTemplate
-        { }
+        public class AlphaChange : EventTemplate {
+        }
 
         /// <summary>
         /// 角度变化事件
         /// </summary>
-        public class AngleChange : EventTemplate
-        { }
+        public class AngleChange : EventTemplate {
+        }
 
         /// <summary>
         /// 流速变化事件
@@ -535,22 +541,18 @@ namespace Phigros_Fanmade
 
     public static class EventList
     {
-        public class XMoveList : List<Event.XMove>
-        {
-            
+        public class XMoveList : List<Event.XMove> {
         }
-        public class YMoveList : List<Event.YMove>
-        {
-            
+
+        public class YMoveList : List<Event.YMove> {
         }
-        public class AlphaChangeList : List<Event.AlphaChange>
-        {
-            
+
+        public class AlphaChangeList : List<Event.AlphaChange> {
         }
-        public class AngleChangeList : List<Event.AngleChange>
-        {
-            
+
+        public class AngleChangeList : List<Event.AngleChange> {
         }
+
         public class SpeedEventList : List<Event.SpeedEvent>
         {
             /// <summary>
@@ -565,8 +567,8 @@ namespace Phigros_Fanmade
                 // 遍历每个速度事件，计算 floorPosition
                 for (int i = 0; i < Count - 1; i++)
                 {
-                    var lastEvent = this[i];       // 上一个事件
-                    var curEvent = this[i + 1];    // 当前事件
+                    var lastEvent = this[i]; // 上一个事件
+                    var curEvent = this[i + 1]; // 当前事件
 
                     // 获取上一个事件的时间段
                     double lastStartTime = lastEvent.startTime;
@@ -574,16 +576,23 @@ namespace Phigros_Fanmade
 
                     // 当前事件的开始时间
                     double curStartTime = curEvent.startTime;
+                    
+                    // 检查时间段是否正确
+                    if (curStartTime < lastEndTime)
+                    {
+                        throw new InvalidOperationException("当前事件的开始时间不能早于上一个事件的结束时间");
+                    }
 
                     // 计算当前事件的 floorPosition
-                    curEvent.floorPosition = lastEvent.floorPosition +
+                    curEvent.floorPosition = lastEvent.floorPosition + 
                                              // 梯形积分：上一个事件的速度积分
-                                             (lastEvent.endValue + lastEvent.startValue) * (lastEndTime - lastStartTime) / 2 +
+                                             (lastEvent.endValue + lastEvent.startValue) *
+                                             (lastEndTime - lastStartTime) / 2 +
                                              // 区间外线性距离：上一个事件结束到当前事件开始
                                              lastEvent.endValue * (curStartTime - lastEndTime);
                 }
             }
-            
+
             /// <summary>
             /// 获取当前时间的速度积分，计算Note和当前时间的floorPosition的主要方法
             /// </summary>
@@ -605,9 +614,9 @@ namespace Phigros_Fanmade
                     if (time <= endTime)
                     {
                         floorPosition += (
-                            speedEvent.startValue + (speedEvent.endValue - speedEvent.startValue) * 
+                            speedEvent.startValue + (speedEvent.endValue - speedEvent.startValue) *
                             (time - startTime) / (endTime - startTime)
-                            ) * (time - startTime) / 2;
+                        ) * (time - startTime) / 2;
                         break;
                     }
 
@@ -648,7 +657,7 @@ namespace Phigros_Fanmade
 
         //SP
         public double floorPosition { get; set; }
-
+        public double? holdEndFloorPosition { get; set; } //当为Hold时，Hold结束的FloorPosition，若非Hold则为null
     }
 
     /// <summary>

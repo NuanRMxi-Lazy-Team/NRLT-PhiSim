@@ -43,6 +43,18 @@ MonoBehaviour:
     m_Localized: I understand
     m_Metadata:
       m_Items: []
+  - m_Id: 48355053390520320
+    m_Localized: Chrat file format error
+    m_Metadata:
+      m_Items: []
+  - m_Id: 48357795068633088
+    m_Localized: Chart configuration file error
+    m_Metadata:
+      m_Items: []
+  - m_Id: 48357844452368384
+    m_Localized: 'Chart file missing: '
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

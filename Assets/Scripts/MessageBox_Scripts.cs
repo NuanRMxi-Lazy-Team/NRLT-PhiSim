@@ -9,8 +9,12 @@ public class MessageBox_Scripts : MonoBehaviour
 
     public string showText = "Null";
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private void Start()
     {
+        if (string.IsNullOrEmpty(showText))
+        {
+            showText = "message is empty.";
+        }
         text.text = showText;
         //Log.Write("MessageBox_Scripts Start", LogType.Debug);
     }

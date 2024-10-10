@@ -7,7 +7,9 @@ public class Play_HoldBody : MonoBehaviour
     public Note note;
     public RectTransform noteRectTransform;
     public Play_JudgeLine fatherJudgeLine;
-    public double playStartUnixTime;
+    [HideInInspector]
+    public double playOffset;
+    public Play_GameManager GameManager;
     private bool hitEnd = false;
     private Renderer noteRenderer;
     private SpriteRenderer spriteRenderer;
@@ -27,18 +29,17 @@ public class Play_HoldBody : MonoBehaviour
     private void Update()
     {
         if (hitEnd) return;
-        double lastTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - playStartUnixTime;
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
         float height = CalcHeight(
             note.clickStartTime,
             note.clickEndTime,
-            lastTime);
+            GameManager.curTick);
         
         //使用sprite renderer修改sprite绘制模式中sprite的size中的高度
         spriteRenderer.size = new Vector2(spriteRenderer.size.x, height);
         
         //计算Y位置
-        float yPos = CalcYPos(height,lastTime);
+        float yPos = CalcYPos(height,GameManager.curTick);
         noteRectTransform.anchoredPosition = new Vector2(note.x, yPos);
     }
     
@@ -88,10 +89,8 @@ public class Play_HoldBody : MonoBehaviour
                 //翻转y坐标
                 return -spriteHeight / 2;
             }
-            else
-            {
-                return spriteHeight / 2;
-            }
+            return spriteHeight / 2;
+            
         }
         double fp = fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(lastTime) - note.floorPosition;
         double newYPosition = fp * note.speedMultiplier - 12 + spriteHeight / 2;//- spriteHeight/2;
@@ -100,9 +99,6 @@ public class Play_HoldBody : MonoBehaviour
             //翻转y坐标
             return (float)-newYPosition;
         }
-        else
-        {
-            return (float)newYPosition;
-        }
+        return (float)newYPosition;
     }
 }

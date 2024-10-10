@@ -87,11 +87,9 @@ public class Main_Button_Click : MonoBehaviour
         //设置移动模式
         ChartCache.Instance.moveMode = ChartCache.MoveMode.WhatTheFuck;
     }
-
-
+    
     public void LoadChart()
     {
-        
         try
         {
             

@@ -15,7 +15,7 @@ public class Play_JudgeLine : MonoBehaviour
 {
     //获取初始参数
     public JudgeLine judgeLine;
-    public double playStartTime;
+    public double playOffset;
     public Play_GameManager GameManager;
     
     
@@ -41,6 +41,13 @@ public class Play_JudgeLine : MonoBehaviour
         lineRenderer = GetComponent<Renderer>();
         lineID.text = whoami.ToString();
         Log.Write(whoami.ToString(),LogType.Debug);
+        if (!ChartCache.Instance.debugMode)
+        {
+            lineRenderer.material.color = new Color
+            {
+                a = 0f
+            };
+        }
         if (ChartCache.Instance.moveMode == ChartCache.MoveMode.WhatTheFuck)
         {
             StartCoroutine(XMoveEventReader());
@@ -63,12 +70,11 @@ public class Play_JudgeLine : MonoBehaviour
         var xMoveList = judgeLine.xMoveList;
         while (true)
         {
-            float playToNow = (float)(GameManager.lastTimeUnix - playStartTime);
             if (!(i <= xMoveList.Count - 1))
             {
                 break;
             }
-            if (playToNow >= xMoveList[i].startTime)
+            if (GameManager.curTick  >= xMoveList[i].startTime)
             {
                 StartCoroutine(MoveXOverTime
                     (
@@ -90,12 +96,11 @@ public class Play_JudgeLine : MonoBehaviour
         var yMoveList = judgeLine.yMoveList;
         while (true)
         {
-            var now = GameManager.lastTimeUnix - playStartTime;
             if (!(i <= yMoveList.Count - 1))
             {
                 break;
             }
-            if (yMoveList[i].startTime <= now)
+            if (yMoveList[i].startTime <= GameManager.curTick )
             {
                 var yEvent = yMoveList[i];
                 StartCoroutine(MoveYOverTime(
@@ -118,12 +123,11 @@ public class Play_JudgeLine : MonoBehaviour
         var angleChangeList = judgeLine.angleChangeList;
         while (true)
         {
-            var now = GameManager.lastTimeUnix - playStartTime;
             if (!(i <= angleChangeList.Count - 1))
             {
                 break;
             }
-            if (angleChangeList[i].startTime <= now)
+            if (angleChangeList[i].startTime <= GameManager.curTick )
             { 
                 var angleEvent = angleChangeList[i]; 
                 StartCoroutine(RotateOverTime(
@@ -143,12 +147,11 @@ public class Play_JudgeLine : MonoBehaviour
         var alphaChangeList = judgeLine.alphaChangeList;
         while (true)
         {
-            var now = GameManager.lastTimeUnix - playStartTime;
             if (!(i <= alphaChangeList.Count - 1))
             {
                 break;
             }
-            if (alphaChangeList[i].startTime <= now)
+            if (alphaChangeList[i].startTime <= GameManager.curTick )
             {
                 var alphaEvent = alphaChangeList[i];
                 StartCoroutine(FadeOverTime(
@@ -168,12 +171,11 @@ public class Play_JudgeLine : MonoBehaviour
         var speedEventList = judgeLine.speedChangeList;
         while (true)
         {
-            var now = GameManager.lastTimeUnix - playStartTime;
             if (!(i <= speedEventList.Count - 1))
             {
                 break;
             }
-            if (speedEventList[i].startTime <= now)
+            if (speedEventList[i].startTime <= GameManager.curTick )
             {
                 lastSpeedEvent = speedEventList[i];
                 i++;
@@ -194,10 +196,10 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为秒）</param>
     IEnumerator MoveXOverTime(float startXValue, float endXValue, float duration)
     {
-        double startTime = GameManager.lastTimeUnix;
-        while ((GameManager.lastTimeUnix - startTime) / 1000 < duration)
+        double startTime = GameManager.curTick ;
+        while ((GameManager.curTick  - startTime) / 1000 < duration)
         {
-            var t = (GameManager.lastTimeUnix - startTime) / 1000 / duration;
+            var t = (GameManager.curTick  - startTime) / 1000 / duration;
             rectTransform.anchoredPosition = Vector3.Lerp(
                 new Vector3(startXValue, rectTransform.anchoredPosition.y),
                 new Vector3(endXValue, rectTransform.anchoredPosition.y),
@@ -215,10 +217,10 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为妙）</param>
     IEnumerator MoveYOverTime(float startYValue, float endYValue, float duration)
     {
-        double startTime = GameManager.lastTimeUnix;
-        while ((GameManager.lastTimeUnix - startTime) / 1000 < duration)
+        double startTime = GameManager.curTick ;
+        while ((GameManager.curTick  - startTime) / 1000 < duration)
         {
-            var t = (GameManager.lastTimeUnix - startTime) / 1000 / duration;
+            var t = (GameManager.curTick  - startTime) / 1000 / duration;
             rectTransform.anchoredPosition = Vector3.Lerp(
                 new Vector3(rectTransform.anchoredPosition.x, startYValue),
                 new Vector3(rectTransform.anchoredPosition.x, endYValue),
@@ -236,10 +238,10 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为妙）</param>
     IEnumerator RotateOverTime(float startRotate, float endRotate, float duration)
     {
-        double startTime = GameManager.lastTimeUnix;
-        while ((GameManager.lastTimeUnix - startTime) / 1000 < duration)
+        double startTime = GameManager.curTick ;
+        while ((GameManager.curTick  - startTime) / 1000 < duration)
         {
-            var t = (GameManager.lastTimeUnix - startTime) / 1000 / duration;
+            var t = (GameManager.curTick  - startTime) / 1000 / duration;
             rectTransform.rotation = Quaternion.Euler(
                 0,
                 0,
@@ -257,15 +259,14 @@ public class Play_JudgeLine : MonoBehaviour
     /// <param name="duration">指定经过时间（单位为妙）</param>
     IEnumerator FadeOverTime(float startAlpha, float endAlpha, float duration)
     {
-        double startTime = GameManager.lastTimeUnix;
-        while ((GameManager.lastTimeUnix - startTime) / 1000 < duration)
+        double startTime = GameManager.curTick ;
+        while ((GameManager.curTick  - startTime) / 1000 < duration)
         {
-            var t = (GameManager.lastTimeUnix - startTime) / 1000 / duration;
+            var t = (GameManager.curTick  - startTime) / 1000 / duration;
             float newOpacity = Mathf.Lerp(startAlpha, endAlpha, (float)t);
             Color color = lineRenderer.material.color;
             color.a = newOpacity;
             lineRenderer.material.color = color;
-            lineID.color = color;
             yield return null;
         }
     }

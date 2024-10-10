@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using LogWriter;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -16,22 +17,29 @@ public class Play_GameManager : MonoBehaviour
     //获取基本游戏对象
     public GameObject JudgeLine;
     public GameObject TapNote;
-    public GameObject HoldNote;
+    public GameObject DragNote;
+    public GameObject FlickNote;
+    
     public GameObject HoldHead;
     public GameObject HoldBody;
     public GameObject HoldEnd;
     
-    
-    public GameObject DragNote;
-    public GameObject FlickNote;
+    //Tick
+    [HideInInspector]
+    public float curTick = 0f;
 
     public TMP_Text Time;
     //时间
-    public double lastTimeUnix;
-    private double startTime;
     
     //背景插画
     public GameObject Illistration;
+
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+    private AudioSource musicAudioSource;
+#elif UNITY_ANDROID || UNITY_IOS
+    private NativeSource musicAudioSource;
+#endif
+    
 
     // Start is called before the first frame update
     void Start()
@@ -69,11 +77,16 @@ public class Play_GameManager : MonoBehaviour
         }
     }
 
-    void FixedUpdate()
+    void Update()
     {
-        //date time update
-        lastTimeUnix = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        Time.text = (lastTimeUnix - startTime).ToString();
+        //Tick
+        if (musicAudioSource is not null && !musicAudioSource.isPlaying) return;
+
+        if (musicAudioSource is not null)
+        {
+            curTick = musicAudioSource.time * 1000;
+        }
+        Time.text = curTick.ToString();
     }
 
     #region 音频播放部分
@@ -81,12 +94,12 @@ public class Play_GameManager : MonoBehaviour
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
     IEnumerator MusicPlay(AudioClip music, double time)
     {
-        AudioSource musicAudioSource = gameObject.AddComponent<AudioSource>();
+        musicAudioSource = gameObject.AddComponent<AudioSource>();
         musicAudioSource.clip = music;
         musicAudioSource.loop = false; //禁用循环播放
         while (true)
         {
-            if (time <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
+            if (time <= curTick)
             {
                 musicAudioSource.Play();
                 break;
@@ -94,20 +107,18 @@ public class Play_GameManager : MonoBehaviour
             yield return null;
         }
     }
-#elif UNITY_ANDROID
+#elif UNITY_ANDROID || UNITY_IOS
     IEnumerator MusicPlay(AudioClip music, double time)
     {
         NativeAudio.Initialize();
-        bool MusicisPlay = false;
         //预加载音乐
         NativeAudioPointer audioPointer = NativeAudio.Load(music);
-        NativeSource nS = new NativeSource();
+        musicAudioSource = new NativeSource();
         while (true)
         {
-            if (time <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() && !MusicisPlay)
+            if (time <= curTick)
             {
-                MusicisPlay = true;
-                nS.Play(audioPointer);
+                musicAudioSource.Play(audioPointer);
                 break;
             }
             yield return null;
@@ -117,30 +128,27 @@ public class Play_GameManager : MonoBehaviour
     
     #endregion
 
-    public void DrawScene()
+    private void DrawScene()
     {
         //预加载打击音频
         var tapAudioClip = Resources.Load<AudioClip>("Audio/tapHit");
         var dragAudioClip = Resources.Load<AudioClip>("Audio/dragHit");
         var flickAudioClip = Resources.Load<AudioClip>("Audio/flickHit");
         
-        
         var chart = ChartCache.Instance.chart;
-        double unixTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 5000;
-        startTime = unixTime;
+        StartCoroutine(MusicPlay(chart.music, 0));
         
-        GameObject parent = GameObject.Find("Play Canvas");
+        GameObject canvas = GameObject.Find("Play Canvas");
         for (int i = 0; i < chart.judgeLineList.Count; i++)
         {
             // 生成判定线实例，设置父对象为画布
-            GameObject instance = Instantiate(JudgeLine, parent.transform);
+            GameObject instance = Instantiate(JudgeLine, canvas.transform);
             
             // 设置判定线位置到画布顶端且为不可视区域
             instance.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 1000);
             // 获取预制件的脚本组件
             var script = instance.GetComponent<Play_JudgeLine>();
             // 设置脚本中的公共变量
-            script.playStartTime = unixTime;
             script.judgeLine = chart.judgeLineList[i];
             script.whoami = i;
             script.GameManager = this;
@@ -178,7 +186,7 @@ public class Play_GameManager : MonoBehaviour
                 var playNote = noteGameObject.GetComponent<Play_Note>();
                 playNote.fatherJudgeLine = script;
                 playNote.note = note;
-                playNote.playStartUnixTime = unixTime;
+                playNote.GameManager = this;
                 
                 //设置父对象
                 noteGameObject.transform.SetParent(instance.GetComponent<RectTransform>());
@@ -188,26 +196,41 @@ public class Play_GameManager : MonoBehaviour
             //生成Hold
             foreach (var hold in holdList)
             {
-                var head = Instantiate(HoldHead);
+                var head = Instantiate(HoldHead,instance.GetComponent<RectTransform>());
                 head.GetComponent<Play_HoldHead>().HitClip = tapAudioClip;
                 head.GetComponent<Play_HoldHead>().fatherJudgeLine = script;
                 head.GetComponent<Play_HoldHead>().note = hold;
-                head.GetComponent<Play_HoldHead>().playStartUnixTime = unixTime;
-                head.transform.SetParent(instance.GetComponent<RectTransform>());
+                head.GetComponent<Play_HoldHead>().GameManager = this;
                 
-                var body = Instantiate(HoldBody);
+                var body = Instantiate(HoldBody,instance.GetComponent<RectTransform>());
                 body.GetComponent<Play_HoldBody>().fatherJudgeLine = script;
                 body.GetComponent<Play_HoldBody>().note = hold;
-                body.GetComponent<Play_HoldBody>().playStartUnixTime = unixTime;
-                body.transform.SetParent(instance.GetComponent<RectTransform>());
+                body.GetComponent<Play_HoldBody>().GameManager = this;
                 
-                var end = Instantiate(HoldEnd);
+                var end = Instantiate(HoldEnd, instance.GetComponent<RectTransform>());
                 end.GetComponent<Play_HoldEnd>().fatherJudgeLine = script;
                 end.GetComponent<Play_HoldEnd>().note = hold;
-                end.GetComponent<Play_HoldEnd>().playStartUnixTime = unixTime;
-                end.transform.SetParent(instance.GetComponent<RectTransform>());
+                end.GetComponent<Play_HoldEnd>().GameManager = this;
             }
         }
-        StartCoroutine(MusicPlay(chart.music, unixTime));
+    }
+    
+    //Tick操作
+    public void Pause()
+    {
+        //暂停音乐
+        musicAudioSource.Pause();
+    }
+
+    public void Resume()
+    {
+        //继续播放
+        musicAudioSource.Play();
+    }
+
+    public void JumpToTick(float tick)
+    {
+        //跳转音乐
+        musicAudioSource.time = tick / 1000;
     }
 }

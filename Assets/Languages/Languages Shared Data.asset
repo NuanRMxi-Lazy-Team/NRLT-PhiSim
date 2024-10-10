@@ -39,6 +39,18 @@ MonoBehaviour:
     m_Key: UI_MessageBox_Accpet
     m_Metadata:
       m_Items: []
+  - m_Id: 48355053390520320
+    m_Key: Chart_Format_Err
+    m_Metadata:
+      m_Items: []
+  - m_Id: 48357795068633088
+    m_Key: Chart_Config_Err
+    m_Metadata:
+      m_Items: []
+  - m_Id: 48357844452368384
+    m_Key: Chart_File_Missing
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
