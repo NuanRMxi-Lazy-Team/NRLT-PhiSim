@@ -106,5 +106,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   noteRectTransform: {fileID: 5038615079767699886}
   fatherJudgeLine: {fileID: 0}
-  playStartUnixTime: 0
+  GameManager: {fileID: 0}
+  HitFx: {fileID: 3007948457960706684, guid: 0b3a96ec9c77cd740bf88fd282aa3a16, type: 3}
   HitClip: {fileID: 0}

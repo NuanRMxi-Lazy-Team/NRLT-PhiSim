@@ -627,6 +627,27 @@ namespace Phigros_Fanmade
             }
         }
     }
+    
+    public class EventLayer
+    {
+        //Event List
+        public EventList.XMoveList xMoveList { get; set; } = new();
+        public EventList.YMoveList yMoveList { get; set; } = new();
+        public EventList.AlphaChangeList alphaChangeList { get; set; } = new();
+        public EventList.AngleChangeList angleChangeList { get; set; } = new();
+        public EventList.SpeedEventList speedChangeList { get; set; } = new();
+    }
+    /// <summary>
+    /// RPE特性：事件层级
+    /// </summary>
+    public class EventLayers : List<EventLayer>
+    {
+        public new void Add(EventLayer eventLayer)
+        {
+            if (this.Count >= 5) throw new InvalidOperationException("事件层级不能超过5层");
+            base.Add(eventLayer);
+        }
+    }
 
     /// <summary>
     /// 音符
@@ -671,6 +692,8 @@ namespace Phigros_Fanmade
         public List<Event.AlphaChange> alphaChangeList { get; set; } = new();
         public List<Event.AngleChange> angleChangeList { get; set; } = new();
         public EventList.SpeedEventList speedChangeList { get; set; } = new();
+        //事件层级
+        public List<EventLayer> eventLayers { get; set; } = new();
 
         //Note List
         public List<Note> noteList { get; set; } = new();

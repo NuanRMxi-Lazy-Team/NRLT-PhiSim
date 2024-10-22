@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using NUnit.Framework;
 using Phigros_Fanmade;
 using UnityEngine;
 
@@ -63,6 +65,14 @@ public class ChartCache : MonoBehaviour
     {
         WhatTheFuck,
         Beta//后续支持
+    }
+
+    private List<Sprite> _hitFxs;
+
+    public List<Sprite> HitFxs
+    {
+        get { return _hitFxs; }
+        set { _hitFxs = value; }
     }
 
 
