@@ -54,7 +54,7 @@ public class Play_HoldEnd : MonoBehaviour
         float newYPosition = (float)
         (
             fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(lastTime - clickTime) -
-            note.holdEndFloorPosition
+            note.floorPosition
         ) * note.speedMultiplier;
         if (note.above)
         {

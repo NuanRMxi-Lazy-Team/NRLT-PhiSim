@@ -4,14 +4,17 @@ using System.Linq;
 using LogWriter;
 using UnityEngine;
 using System;
+using UnityEngine.Serialization;
 
 public class HitFx : MonoBehaviour
 {
     private List<Sprite> hitFxSprites;
 
+    //[FormerlySerializedAs("GameManager")] 
     [HideInInspector]
-    public Play_GameManager GameManager;
+    public Play_GameManager gameManager;
     private SpriteRenderer spriteRenderer;
+    
     private void Start()
     {
         //从ChartCache中获取打击特效
@@ -23,12 +26,12 @@ public class HitFx : MonoBehaviour
 
     private IEnumerator FxUpd()
     {
-        float startTime = GameManager.curTick;
+        float startTime = gameManager.curTick;
         int index = 0;
-        //顺序播放打击特效
+        //顺序播放打击特效，每帧播放一张（60fps）
         while (true)
         {
-            if (GameManager.curTick - startTime >= 16.67f)
+            if (gameManager.curTick - startTime >= 16.67f)
             {
                 index++;
                 startTime += 16.67f;
@@ -40,7 +43,7 @@ public class HitFx : MonoBehaviour
                 break;
             }
             spriteRenderer.sprite = hitFxSprites[index];
-            //hitFxSprites[index].rect.size是sprite的大小，显示时需要放大40.57%
+            //hitFxSprites[index].rect.size是sprite的大小，显示时需要放大40.57%（基于1920*1080的分辨率）
             spriteRenderer.size = new Vector2(hitFxSprites[index].rect.size.x * 1.4057f, hitFxSprites[index].rect.size.y * 1.4057f);
             yield return null;
         }

@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
-using LogWriter;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Phigros_Fanmade;
 using TMPro;
@@ -14,27 +16,17 @@ public class Play_JudgeLine : MonoBehaviour
     
     
     //self
+    [HideInInspector]
     public int whoami = 0;
     public RectTransform rectTransform;
     private Renderer lineRenderer;
     public TMP_Text lineID;
-    
-    
-    //SPEvent
-    public Event.SpeedEvent lastSpeedEvent = new()
-    {
-        startTime = 0,
-        endTime = 0,
-        startValue = 0,
-        endValue = 0
-    };
     
     // Start is called before the first frame update
     void Start()
     {
         lineRenderer = GetComponent<Renderer>();
         lineID.text = whoami.ToString();
-        Log.Write(whoami.ToString(),LogType.Debug);
         if (!ChartCache.Instance.debugMode)
         {
             lineRenderer.material.color = new Color
@@ -48,7 +40,6 @@ public class Play_JudgeLine : MonoBehaviour
             StartCoroutine(YMoveEventReader());
             StartCoroutine(AlphaEventReader());
             StartCoroutine(RotateEventReader());
-            StartCoroutine(SP_SpeedEventReadr());
         }
     }
     
@@ -158,26 +149,6 @@ public class Play_JudgeLine : MonoBehaviour
             yield return null;
         }
     }
-    
-    private IEnumerator SP_SpeedEventReadr()
-    {
-        int i = 0;
-        var speedEventList = judgeLine.speedChangeList;
-        while (true)
-        {
-            if (!(i <= speedEventList.Count - 1))
-            {
-                break;
-            }
-            if (speedEventList[i].startTime <= GameManager.curTick )
-            {
-                lastSpeedEvent = speedEventList[i];
-                i++;
-            }
-            yield return null;
-        }
-    }
-
     #endregion
 
     #region judgeLineMover
@@ -265,5 +236,49 @@ public class Play_JudgeLine : MonoBehaviour
         }
     }
     
+    #endregion
+    
+    #region Pos
+    public Tuple<float, float> CalcPositionXY(double t, float x)
+    {
+        // Calculate the x position at time t
+        float xPos = CalculateValueAtTime(judgeLine.xMoveList.Cast<Event.EventTemplate>().ToList(), t);
+        // Calculate the y position at time t
+        float yPos = CalculateValueAtTime(judgeLine.yMoveList.Cast<Event.EventTemplate>().ToList(), t);
+        // Calculate the angle (theta) at time t
+        float theta = CalculateValueAtTime(judgeLine.angleChangeList.Cast<Event.EventTemplate>().ToList(), t);
+
+        // Convert theta to radians
+        double radians = theta * Math.PI / 180.0;
+
+        // Calculate the new position of the point (x, y) at time t
+        float newX = (float)((x + xPos) * Math.Cos(radians) - yPos * Math.Sin(radians));
+        float newY = (float)((x + xPos) * Math.Sin(radians) + yPos * Math.Cos(radians));
+
+        return Tuple.Create(newX, newY);
+    }
+
+    private static float CalculateValueAtTime(List<Event.EventTemplate> changes, double t)
+    {
+        Event.EventTemplate previousChange = null;
+
+        foreach (var change in changes)
+        {
+            if (t >= change.startTime && t <= change.endTime)
+            {
+                float normalizedTime = (float)((t - change.startTime) / (change.endTime - change.startTime));
+                return Mathf.Lerp(change.startValue, change.endValue, normalizedTime);
+            }
+            previousChange = change;
+        }
+
+        // 如果时间点不在任何变化区间内，使用上一个变化区间的endValue
+        if (previousChange != null)
+        {
+            return previousChange.endValue;
+        }
+
+        throw new ArgumentException("时间点不在任何变化区间内，且没有上一个变化区间");
+    }
     #endregion
 }

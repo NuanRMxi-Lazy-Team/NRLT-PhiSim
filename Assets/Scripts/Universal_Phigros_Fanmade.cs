@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using System.IO;
 using System.IO.Compression;
 using SimpleJSON;
 using System;
-using System.Linq;
 using JetBrains.Annotations;
 using LogWriter;
 using LogType = LogWriter.LogType;
 using UnityEngine.Localization.Settings;
+
+using Newtonsoft.Json;
 
 namespace Phigros_Fanmade
 {
@@ -422,9 +422,6 @@ namespace Phigros_Fanmade
                                 speedMultiplier = noteList[j]["speed"],
                                 above = setAbove,
                                 floorPosition = judgeLine.speedChangeList.GetCurTimeSu(noteClickStartTime), //这是临时修改。
-                                holdEndFloorPosition = noteType == Note.NoteType.Hold
-                                    ? judgeLine.speedChangeList.GetCurTimeSu(noteClickEndTime)
-                                    : null
                                 //floorPosition = float.Parse(noteList[j]["floorPosition"].ToString()) * 100f
                             });
                             //Log.Write("this note FP:" + Note.GetCurTimeSu(noteClickStartTime, judgeLine.speedChangeList)+"\norigin FP:"
@@ -678,7 +675,7 @@ namespace Phigros_Fanmade
 
         //SP
         public double floorPosition { get; set; }
-        public double? holdEndFloorPosition { get; set; } //当为Hold时，Hold结束的FloorPosition，若非Hold则为null
+        
     }
 
     /// <summary>

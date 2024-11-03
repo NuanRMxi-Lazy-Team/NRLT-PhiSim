@@ -62,10 +62,12 @@ public class Play_HoldHead : MonoBehaviour
             //摧毁渲染器
             Destroy(noteRenderer);
             //生成hitFx，恒定不旋转
-            var hitFx = Instantiate(HitFx, transform.position, Quaternion.identity);
-            hitFx.GameManager = GameManager;
+            var fxPos = fatherJudgeLine.CalcPositionXY(note.clickStartTime,note.x);
+            var hitFx = Instantiate(HitFx, new Vector3(fxPos.Item1,fxPos.Item2), Quaternion.identity);
+            hitFx.gameManager = GameManager;
             //设置父对象为Canvas
             hitFx.transform.SetParent(GameObject.Find("Play Canvas").transform);
+            hitFx.GetComponent<RectTransform>().anchoredPosition = new Vector2(note.x, fxPos.Item2);
             
             //进入协程，等待音效结束
             StartCoroutine(WaitForDestroy());
