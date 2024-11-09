@@ -90,7 +90,7 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
+  m_MaskInteraction: 1
   m_SpriteSortPoint: 0
 --- !u!114 &757354214161447350
 MonoBehaviour:
@@ -106,4 +106,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   noteRectTransform: {fileID: 1742133340627315998}
   fatherJudgeLine: {fileID: 0}
-  playStartUnixTime: 0
+  playOffset: 0
+  GameManager: {fileID: 0}

@@ -74,7 +74,7 @@ public class Play_Note : MonoBehaviour
             hitFx.gameManager = GameManager;
             //设置父对象为Canvas
             hitFx.transform.SetParent(GameObject.Find("Play Canvas").transform);
-            hitFx.GetComponent<RectTransform>().anchoredPosition = new Vector2(note.x, fxPos.Item2);
+            hitFx.GetComponent<RectTransform>().anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
             //进入协程，等待音效结束
             StartCoroutine(WaitForDestroy());
             hitEnd = true;

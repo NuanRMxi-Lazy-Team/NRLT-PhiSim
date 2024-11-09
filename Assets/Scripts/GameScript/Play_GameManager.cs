@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using E7.Native;
 using LogWriter;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -80,13 +81,28 @@ public class Play_GameManager : MonoBehaviour
 
     void Update()
     {
-        //Tick
-        if (musicAudioSource is not null && !musicAudioSource.isPlaying) return;
-
-        if (musicAudioSource is not null)
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
-            curTick = musicAudioSource.time * 1000;
+            musicAudioSource.Stop();
+            SceneManager.LoadScene(0);
         }
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            PauseButton();
+        }
+        
+        //Tick
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+        if (musicAudioSource is not null && !musicAudioSource.isPlaying) return;
+#elif UNITY_ANDROID || UNITY_IOS
+        
+#endif
+        
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+        curTick = musicAudioSource.time * 1000;
+#elif UNITY_ANDROID || UNITY_IOS
+        curTick = musicAudioSource.GetPlaybackTime() * 1000;
+#endif
         Time.text = curTick.ToString();
     }
 
@@ -237,12 +253,32 @@ public class Play_GameManager : MonoBehaviour
     public void Resume()
     {
         //继续播放
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
         musicAudioSource.Play();
+#elif UNITY_ANDROID || UNITY_IOS
+        musicAudioSource.SetPlaybackTime(curTick / 1000);
+#endif
     }
 
     public void JumpToTick(float tick)
     {
-        //跳转音乐
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
         musicAudioSource.time = tick / 1000;
+#elif UNITY_ANDROID || UNITY_IOS
+        musicAudioSource.SetPlaybackTime(tick / 1000);
+#endif
+    }
+    
+    private bool isPaused = false;
+    public void PauseButton()
+    {
+        if (isPaused)
+        {
+            Resume();
+            isPaused = false;
+            return;
+        }
+        Pause();
+        isPaused = true;
     }
 }

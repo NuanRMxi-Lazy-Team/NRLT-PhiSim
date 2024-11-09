@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using UnityEngine;
 using LogWriter;
 using LogType = LogWriter.LogType;
@@ -86,23 +87,49 @@ public class Main_Button_Click : MonoBehaviour
         #endregion
         //设置移动模式
         ChartCache.Instance.moveMode = ChartCache.MoveMode.WhatTheFuck;
+        
+        //获得屏幕宽高
+        float screenWidth = Screen.width;
+        float screenHeight = Screen.height;
+        //拟合宽高比为16:9，高度不变，计算新的宽度
+        float aspectRatio = screenWidth / screenHeight;
+        float targetWidth = Screen.height * 16 / 9;
+        //设置Panel的宽度
+        GameObject.Find("Main_Panel").GetComponent<RectTransform>().sizeDelta = new Vector2(targetWidth, Screen.height);
+        
     }
     
+    private void Update()
+    {
+        // 执行队列中的操作
+        while (_executionQueue.TryDequeue(out var action))
+        {
+            action?.Invoke();
+        }
+    }
+    private static readonly ConcurrentQueue<Action> _executionQueue = new ConcurrentQueue<Action>();
+
+    public static void Enqueue(Action action)
+    {
+        if (action == null)
+            throw new ArgumentNullException(nameof(action));
+        _executionQueue.Enqueue(action);
+    }
     public void LoadChart()
     {
         try
         {
-            
             //提示选取与加载谱面
-            NativeFileSO.shared.OpenFile(SupportedFilePreferences.supportedFileTypes, (isOpen, file) =>
+            NativeFileSO.shared.OpenFile(SupportedFilePreferences.supportedFileTypes, async (isOpen, file) =>
             {
                 if (isOpen)
                 {
                     Log.Write(file.Name);
 #if UNITY_EDITOR
-                    ChartCache.Instance.chart = Chart.ChartConverter(file.Data, "D:\\PhiOfaChart",file.Extension);
+                    var chart = await Chart.ChartConverter(file.Data, "D:\\PhiOfaChart",file.Extension);
+                    ChartCache.Instance.chart = chart;
 #else
-                    ChartCache.Instance.chart = Chart.ChartConverter(file.Data, Path.GetTempPath(),file.Extension);
+                    ChartCache.Instance.chart = await Chart.ChartConverter(file.Data, Path.GetTempPath(),file.Extension);
 #endif
                     //弹出MessageBox
                     GameObject parent = GameObject.Find("Main_Panel");

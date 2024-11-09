@@ -62,15 +62,15 @@ public class Play_HoldBody : MonoBehaviour
         //float yPosition = (float)(speed * (note.clickStartTime / 1000 - elapsedTime) * 648 * note.speedMultiplier); // 这里加入了速度单位648像素/秒，648是1080 * 0.6
         //弃用原直接计算，使用floorPos进行计算。
         float clickStartFloorPosition = (float)
-            (
-                fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(currentTime) -
-                note.floorPosition
-                ) * note.speedMultiplier;
+        (
+            fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(currentTime) -
+            note.floorPosition
+        );//* note.speedMultiplier;
         float clickEndFloorPosition = (float)
         (
             fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(clickEndTime) -
             note.floorPosition
-        ) * note.speedMultiplier;
+        );//* note.speedMultiplier;
         float spriteHeight = -clickEndFloorPosition - -clickStartFloorPosition;
         
         //获得自己的sprite高度
@@ -93,7 +93,8 @@ public class Play_HoldBody : MonoBehaviour
             
         }
         double fp = fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(lastTime) - note.floorPosition;
-        double newYPosition = fp * note.speedMultiplier - 12 + spriteHeight / 2;//- spriteHeight/2;
+        //double newYPosition = fp * note.speedMultiplier - 12 + spriteHeight / 2;//- spriteHeight/2;
+        double newYPosition = fp - 12 + spriteHeight / 2;
         if (note.above)
         {
             //翻转y坐标

@@ -236,7 +236,7 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
+  m_MaskInteraction: 1
   m_SpriteSortPoint: 0
 --- !u!114 &7539705919494943728
 MonoBehaviour:
@@ -250,7 +250,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c47308aed9340346baf177e91fc9bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playStartTime: 0
+  GameManager: {fileID: 0}
   whoami: 0
   rectTransform: {fileID: 6690072806836315071}
   lineID: {fileID: 2308691451297352472}

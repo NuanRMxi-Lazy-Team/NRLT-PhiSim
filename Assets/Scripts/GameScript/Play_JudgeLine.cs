@@ -239,21 +239,31 @@ public class Play_JudgeLine : MonoBehaviour
     #endregion
     
     #region Pos
+    
+    
+    
     public Tuple<float, float> CalcPositionXY(double t, float x)
     {
-        // Calculate the x position at time t
+        // 获取在时间 t 时刻判定线的 x 位置
         float xPos = CalculateValueAtTime(judgeLine.xMoveList.Cast<Event.EventTemplate>().ToList(), t);
-        // Calculate the y position at time t
+        // 获取在时间 t 时刻判定线的 y 位置
         float yPos = CalculateValueAtTime(judgeLine.yMoveList.Cast<Event.EventTemplate>().ToList(), t);
-        // Calculate the angle (theta) at time t
+        // 获取在时间 t 时刻判定线的旋转角度（theta）
         float theta = CalculateValueAtTime(judgeLine.angleChangeList.Cast<Event.EventTemplate>().ToList(), t);
 
-        // Convert theta to radians
+        // 将角度 theta 转换为弧度
         double radians = theta * Math.PI / 180.0;
 
-        // Calculate the new position of the point (x, y) at time t
-        float newX = (float)((x + xPos) * Math.Cos(radians) - yPos * Math.Sin(radians));
-        float newY = (float)((x + xPos) * Math.Sin(radians) + yPos * Math.Cos(radians));
+        // 点相对于判定线中心的纵向偏移为 0
+        float y = 0f;
+
+        // 计算旋转后的坐标
+        float rotatedX = (float)(x * Math.Cos(radians) - y * Math.Sin(radians));
+        float rotatedY = (float)(x * Math.Sin(radians) + y * Math.Cos(radians));
+
+        // 将旋转后的坐标和平移坐标相加，得到最终的世界坐标
+        float newX = rotatedX + xPos;
+        float newY = rotatedY + yPos;
 
         return Tuple.Create(newX, newY);
     }
@@ -272,7 +282,7 @@ public class Play_JudgeLine : MonoBehaviour
             previousChange = change;
         }
 
-        // 如果时间点不在任何变化区间内，使用上一个变化区间的endValue
+        // 如果时间点不在任何变化区间内，使用上一个变化区间的 endValue
         if (previousChange != null)
         {
             return previousChange.endValue;

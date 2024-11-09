@@ -1,15 +1,15 @@
-Shader "Custom/HighQualityGaussianBlurWithBrightness"
+Shader "Custom/GaussianBlurWithBrightness"
 {
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _BlurSize ("Blur Size", Float) = 5.0
-        _Brightness ("Brightness", Range(0, 1)) = 0.6 // 控制亮度，1为默认亮度
+        _BlurSize ("Blur Size", Float) = 3.5
+        _Brightness ("Brightness", Float) = 0.4
     }
     SubShader
     {
         Tags { "RenderType"="Opaque" }
-        LOD 100
+        LOD 200
 
         Pass
         {
@@ -19,7 +19,7 @@ Shader "Custom/HighQualityGaussianBlurWithBrightness"
 
             #include "UnityCG.cginc"
 
-            struct appdata
+            struct appdata_t
             {
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
@@ -32,47 +32,35 @@ Shader "Custom/HighQualityGaussianBlurWithBrightness"
             };
 
             sampler2D _MainTex;
-            float4 _MainTex_TexelSize; // Unity will set this automatically
+            float4 _MainTex_ST;
             float _BlurSize;
-            float _Brightness;  // 新增亮度参数
+            float _Brightness;
 
-            v2f vert (appdata v)
+            v2f vert (appdata_t v)
             {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = v.uv;
+                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 return o;
             }
 
-            float Gaussian(float x, float sigma)
+            fixed4 frag (v2f i) : SV_Target
             {
-                return exp(- (x * x) / (2.0 * sigma * sigma)) / (sqrt(6.28318530718) * sigma);
-            }
-
-            float4 frag (v2f i) : SV_Target
-            {
+                float2 uv = i.uv;
                 float4 color = float4(0, 0, 0, 0);
-                float totalWeight = 0.0;
 
-                float2 dir = float2(_BlurSize * _MainTex_TexelSize.x, _BlurSize * _MainTex_TexelSize.y);
-                float sigma = 2.0; // Standard deviation for Gaussian distribution
-                int radius = 10; // Blur radius, can increase for stronger blur
-
-                for (int x = -radius; x <= radius; x++)
+                // Sample the texture at different offsets to create the blur effect
+                for (int x = -2; x <= 2; x++)
                 {
-                    for (int y = -radius; y <= radius; y++)
+                    for (int y = -2; y <= 2; y++)
                     {
-                        float weight = Gaussian(sqrt(x * x + y * y), sigma);
-                        float2 uvOffset = i.uv + float2(x, y) * dir;
-                        color += tex2D(_MainTex, uvOffset) * weight;
-                        totalWeight += weight;
+                        color += tex2D(_MainTex, uv + float2(x, y) * _BlurSize / _ScreenParams.xy);
                     }
                 }
 
-                // Normalize the result to ensure the total weight adds up to 1
-                color /= totalWeight;
+                color /= 25.0; // Normalize the color
 
-                // 调整亮度，控制图片的整体亮度
+                // Apply brightness adjustment
                 color.rgb *= _Brightness;
 
                 return color;
@@ -80,5 +68,4 @@ Shader "Custom/HighQualityGaussianBlurWithBrightness"
             ENDCG
         }
     }
-    FallBack "Diffuse"
 }
