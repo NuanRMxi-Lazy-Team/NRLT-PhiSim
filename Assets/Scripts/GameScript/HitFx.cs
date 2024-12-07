@@ -1,30 +1,45 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using LogWriter;
 using UnityEngine;
-using System;
-using UnityEngine.Serialization;
+#if UNITY_ANDROID && !UNITY_EDITOR_WIN
+using E7.Native;
+#endif
 
 public class HitFx : MonoBehaviour
 {
-    private List<Sprite> hitFxSprites;
+    private List<Sprite> _hitFxSprites;
 
     //[FormerlySerializedAs("GameManager")] 
     [HideInInspector]
     public Play_GameManager gameManager;
-    private SpriteRenderer spriteRenderer;
-    
+    public RectTransform rectTransform;
+    public AudioSource audioSource;
+
+    private SpriteRenderer _spriteRenderer;
+
+    // 打击音效
+    public AudioClip hitAudioClip;
+
     private void Start()
     {
+        // 立即加载打击音效
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+        audioSource.clip = hitAudioClip;
+        audioSource.loop = false;
+        audioSource.Play();
+#elif UNITY_ANDROID || UNITY_IOS
+        var NativeAudioPointer audioPointer = NativeAudio.Load(hitAudioClip);
+        var musicAudioSource = new NativeSource();
+        musicAudioSource.Play(audioPointer);
+#endif
         //从ChartCache中获取打击特效
-        hitFxSprites = ChartCache.Instance.HitFxs;
+        _hitFxSprites = ChartCache.Instance.HitFxs;
         
-        spriteRenderer = GetComponent<SpriteRenderer>();
-        StartCoroutine(FxUpd());
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+        StartCoroutine(FxUpdate());
     }
 
-    private IEnumerator FxUpd()
+    private IEnumerator FxUpdate()
     {
         float startTime = gameManager.curTick;
         int index = 0;
@@ -37,14 +52,14 @@ public class HitFx : MonoBehaviour
                 startTime += 16.67f;
             }
             //如果特效播放完毕，销毁自己
-            if (index >= hitFxSprites.Count)
+            if (index >= _hitFxSprites.Count)
             {
                 Destroy(gameObject);
                 break;
             }
-            spriteRenderer.sprite = hitFxSprites[index];
-            //hitFxSprites[index].rect.size是sprite的大小，显示时需要放大40.57%（基于1920*1080的分辨率）
-            spriteRenderer.size = new Vector2(hitFxSprites[index].rect.size.x * 1.4057f, hitFxSprites[index].rect.size.y * 1.4057f);
+            _spriteRenderer.sprite = _hitFxSprites[index];
+            //hitFxSprites[index].rect.size是sprite的大小，显示时需要放大1.375倍
+            _spriteRenderer.size = new Vector2(_hitFxSprites[index].rect.size.x * 1.375f, _hitFxSprites[index].rect.size.y * 1.375f);
             yield return null;
         }
     }

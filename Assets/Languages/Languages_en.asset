@@ -55,6 +55,10 @@ MonoBehaviour:
     m_Localized: 'Chart file missing: '
     m_Metadata:
       m_Items: []
+  - m_Id: 70705337056600064
+    m_Localized: Setting
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

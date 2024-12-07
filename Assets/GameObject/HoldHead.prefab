@@ -107,5 +107,5 @@ MonoBehaviour:
   noteRectTransform: {fileID: 6295495596166909836}
   fatherJudgeLine: {fileID: 0}
   GameManager: {fileID: 0}
-  HitClip: {fileID: 0}
-  HitFx: {fileID: 3007948457960706684, guid: 0b3a96ec9c77cd740bf88fd282aa3a16, type: 3}
+  hitClip: {fileID: 0}
+  hitFx: {fileID: 3007948457960706684, guid: 0b3a96ec9c77cd740bf88fd282aa3a16, type: 3}

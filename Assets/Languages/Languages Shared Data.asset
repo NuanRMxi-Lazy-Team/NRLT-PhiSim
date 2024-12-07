@@ -51,6 +51,10 @@ MonoBehaviour:
     m_Key: Chart_File_Missing
     m_Metadata:
       m_Items: []
+  - m_Id: 70705337056600064
+    m_Key: Main_Setting_Button
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

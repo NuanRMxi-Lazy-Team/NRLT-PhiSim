@@ -19,7 +19,7 @@ public class Main_Button_Click : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        ChartCache.Instance.debugMode = true;
+        ChartCache.Instance.debugMode = false;
         
         #region 权限相关
 #if UNITY_EDITOR_WIN
@@ -86,14 +86,14 @@ public class Main_Button_Click : MonoBehaviour
 
         #endregion
         //设置移动模式
-        ChartCache.Instance.moveMode = ChartCache.MoveMode.WhatTheFuck;
+        ChartCache.Instance.moveMode = ChartCache.MoveMode.Beta;
         
         //获得屏幕宽高
         float screenWidth = Screen.width;
         float screenHeight = Screen.height;
         //拟合宽高比为16:9，高度不变，计算新的宽度
         float aspectRatio = screenWidth / screenHeight;
-        float targetWidth = Screen.height * 16 / 9;
+        float targetWidth = Screen.height * 16f / 9f;
         //设置Panel的宽度
         GameObject.Find("Main_Panel").GetComponent<RectTransform>().sizeDelta = new Vector2(targetWidth, Screen.height);
         
@@ -102,19 +102,20 @@ public class Main_Button_Click : MonoBehaviour
     private void Update()
     {
         // 执行队列中的操作
-        while (_executionQueue.TryDequeue(out var action))
+        while (ExecutionQueue.TryDequeue(out var action))
         {
             action?.Invoke();
         }
     }
-    private static readonly ConcurrentQueue<Action> _executionQueue = new ConcurrentQueue<Action>();
+    private static readonly ConcurrentQueue<Action> ExecutionQueue = new();
 
     public static void Enqueue(Action action)
     {
         if (action == null)
             throw new ArgumentNullException(nameof(action));
-        _executionQueue.Enqueue(action);
+        ExecutionQueue.Enqueue(action);
     }
+    
     public void LoadChart()
     {
         try
@@ -134,7 +135,7 @@ public class Main_Button_Click : MonoBehaviour
                     //弹出MessageBox
                     GameObject parent = GameObject.Find("Main_Panel");
                     GameObject instance = Instantiate(messageBox, parent.transform);
-                    instance.GetComponent<MessageBox_Scripts>().showText = "Chart is Loaded";
+                    instance.GetComponent<MessageBox_Scripts>().showText = "Chart loaded successfully!";
                 }
             });
         }
@@ -164,6 +165,12 @@ public class Main_Button_Click : MonoBehaviour
             instance.GetComponent<MessageBox_Scripts>().showText = "unknown Chart...";
         }
     }
+    
+    public void GotoSettings()
+    {
+        //进入设置界面
+        SceneManager.LoadScene(2);
+    }
 #if UNITY_ANDROID
     /// <summary>
     /// Android Toast Show
@@ -173,8 +180,8 @@ public class Main_Button_Click : MonoBehaviour
     {
         if (Application.platform == RuntimePlatform.Android)
         {
-            AndroidJavaClass UnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
-            AndroidJavaObject currentActivity = UnityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+            AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            AndroidJavaObject currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
 
             currentActivity.Call("runOnUiThread", new AndroidJavaRunnable(() =>
             {

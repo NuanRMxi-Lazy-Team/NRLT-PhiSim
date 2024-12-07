@@ -106,5 +106,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   noteRectTransform: {fileID: 1742133340627315998}
   fatherJudgeLine: {fileID: 0}
-  playOffset: 0
   GameManager: {fileID: 0}

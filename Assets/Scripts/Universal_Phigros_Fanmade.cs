@@ -15,6 +15,9 @@ namespace Phigros_Fanmade
 {
     public class Chart
     {
+        public const float HeightRatio = 1.83175f; // 神秘常量，爱来自Mivik
+        public const float RpeSpeedToOfficial = 4.5f; // RPE速度转换为官谱速度的比例
+
         /// <summary>
         /// 官谱时间转换
         /// </summary>
@@ -132,15 +135,15 @@ namespace Phigros_Fanmade
         #endregion
 
         //Type
-        public ChartType chartType { get; set; }
+        public ChartType ChartType;
 
         //List
-        public List<JudgeLine> judgeLineList { get; set; } = new();
+        public List<JudgeLine> JudgeLineList = new();
 
         //Data
-        public AudioClip music { get; set; }
-        public Sprite Illustration { get; set; }
-        public string rawChart { get; set; }
+        public AudioClip Music;
+        public Sprite Illustration;
+        public string RawChart;
 
         #region 谱面转换区块
 
@@ -221,22 +224,21 @@ namespace Phigros_Fanmade
                     //读取谱面
                     Chart chart = new()
                     {
-                        rawChart = File.ReadAllText(cacheFileDirectory + "/" + jsonConfig["chart"])
+                        RawChart = File.ReadAllText(cacheFileDirectory + "/" + jsonConfig["chart"])
                     };
-                    var jsonChart = JSON.Parse(chart.rawChart);
+                    var jsonChart = JSON.Parse(chart.RawChart);
 
                     //载入音频和插图
                     Main_Button_Click.Enqueue(() =>
                     {
-                        chart.music = WavToAudioClip(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["music"]));
+                        chart.Music = WavToAudioClip(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["music"]));
                         chart.Illustration =
                             BytesToSprite(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["illustration"]));
 
-                        //获取音频时长，单位毫秒
-                        double musicLength;
+                        //检查音频是否载入成功
                         try
                         {
-                            musicLength = chart.music.length * 1000;
+                            double musicLength = chart.Music.length;
                         }
                         catch (NullReferenceException)
                         {
@@ -251,7 +253,7 @@ namespace Phigros_Fanmade
                     {
                         //第三代Phigros官谱
                         Log.Write("Chart Version is Official_V3");
-                        chart.chartType = ChartType.Official_V3;
+                        chart.ChartType = ChartType.OfficialV3;
 
                         //读取出所有判定线
                         var judgeLineList = jsonChart["judgeLineList"];
@@ -299,14 +301,14 @@ namespace Phigros_Fanmade
                                     CoordinateTransformer.TransformY(judgeLineMoveEventList[j]["end2"]);
 
                                 //添加数值到列表
-                                judgeLine.xMoveList.Add(new Event.XMove
+                                judgeLine.xMoveList.Add(new Events.Event
                                 {
                                     startTime = eventStartTime,
                                     endTime = eventEndTime,
                                     startValue = eventXStartValue,
                                     endValue = eventXEndValue
                                 });
-                                judgeLine.yMoveList.Add(new Event.YMove
+                                judgeLine.yMoveList.Add(new Events.Event
                                 {
                                     startTime = eventStartTime,
                                     endTime = eventEndTime,
@@ -315,7 +317,7 @@ namespace Phigros_Fanmade
                                 });
                             }
 
-                            judgeLine.angleChangeList = new List<Event.AngleChange>(); //角度变更事件初始化
+                            judgeLine.angleChangeList = new EventList(); //角度变更事件初始化
                             //转换角度变更事件
                             for (int j = 0; j < judgeLineAngleChangeEventList.Count; j++)
                             {
@@ -329,7 +331,7 @@ namespace Phigros_Fanmade
                                     judgeLineBpm); //转换T为毫秒
 
                                 //添加数值到列表
-                                judgeLine.angleChangeList.Add(new Event.AngleChange
+                                judgeLine.angleChangeList.Add(new Events.Event
                                 {
                                     startTime = eventStartTime,
                                     endTime = eventEndTime,
@@ -351,7 +353,7 @@ namespace Phigros_Fanmade
                                     judgeLineBpm); //转换T为毫秒 
 
                                 //添加数值到列表
-                                judgeLine.alphaChangeList.Add(new Event.AlphaChange
+                                judgeLine.alphaChangeList.Add(new Events.Event
                                 {
                                     startTime = eventStartTime,
                                     endTime = eventEndTime,
@@ -374,14 +376,16 @@ namespace Phigros_Fanmade
                                     judgeLineBpm); //转换T为毫秒 
 
                                 //添加到列表
-                                judgeLine.speedChangeList.Add(new Event.SpeedEvent
+                                judgeLine.speedChangeList.Add(new Events.SpeedEvent
                                 {
                                     startTime = eventStartTime,
                                     endTime = eventEndTime,
-                                    startValue = judgeLineSpeedChangeEventList[j]["value"],
-                                    endValue = judgeLineSpeedChangeEventList[j]["value"] //官谱速度无任何缓动，只有关键帧
+                                    startValue = judgeLineSpeedChangeEventList[j]["value"] / 1.5f,
+                                    endValue = judgeLineSpeedChangeEventList[j]["value"] / 1.5f //官谱速度无任何缓动，只有关键帧
                                 });
                             }
+
+                            judgeLine.speedChangeList.CalcFloorPosition();
 
 
                             bool setAbove = true;
@@ -429,14 +433,14 @@ namespace Phigros_Fanmade
                                 //添加Note
                                 judgeLine.noteList.Add(new Note
                                 {
-                                    type = noteType,
+                                    Type = noteType,
                                     clickStartTime = noteClickStartTime,
                                     clickEndTime = noteClickEndTime,
                                     //x = CoordinateTransformer.TransformX(noteList[j]["positionX"]),
-                                    x = (float)noteList[j]["positionX"] * 108f,
-                                    speedMultiplier = noteList[j]["speed"],
-                                    above = setAbove,
-                                    floorPosition =
+                                    X = (float)noteList[j]["positionX"] * 108f,
+                                    SpeedMultiplier = noteList[j]["speed"],
+                                    Above = setAbove,
+                                    FloorPosition =
                                         judgeLine.speedChangeList.GetCurTimeSu(noteClickStartTime), //这是临时修改。
                                     //floorPosition = float.Parse(noteList[j]["floorPosition"].ToString()) * 100f
                                 });
@@ -451,7 +455,7 @@ namespace Phigros_Fanmade
                             }
 
                             //添加判定线
-                            chart.judgeLineList.Add(judgeLine);
+                            chart.JudgeLineList.Add(judgeLine);
                         }
 
                         return chart;
@@ -459,23 +463,23 @@ namespace Phigros_Fanmade
                     else if (jsonChart["formatVersion"] == 1)
                     {
                         //第一代Phigros官谱
-                        Log.Write("Chart Version is Official_V1");
-                        chart.chartType = ChartType.Official_V1;
+                        Log.Write("Chart Version is OfficialV1");
+                        chart.ChartType = ChartType.OfficialV1;
                         throw new NotSupportedException("this version is not supported");
                     }
                     else if (jsonChart["META"] != "" || jsonChart["META"] != null)
                     {
-                        //第4.0代RPE谱面
-                        Log.Write("Chart Version is RePhiEdit_V400, but this chart is not supported.");
-                        chart.chartType = ChartType.RePhiEdit_V400;
+                        //RPE谱面
+                        Log.Write("Chart Version is RePhiEdi, but this chart is not supported.");
+                        chart.ChartType = ChartType.RePhiEdit;
                         throw new NotSupportedException("this version is not supported");
                     }
                     else
                     {
                         //未知的或不支持的文件
                         Log.Write(
-                            " The format of this chart may be PhiEdit_V0, but it is not supported and will not be supported in the future");
-                        chart.chartType = ChartType.PhiEdit_V0;
+                            " The format of this chart may be PhiEdit, but it is not supported and will not be supported in the future");
+                        chart.ChartType = ChartType.PhiEdit;
                         throw new NotSupportedException("this version is not supported");
                     }
                 }
@@ -497,22 +501,22 @@ namespace Phigros_Fanmade
     /// </summary>
     public enum ChartType
     {
-        Official_V3,
-        Official_V1,
-        RePhiEdit_V400,
-        PhiEdit_V0,
-        SPCNRLT
+        OfficialV3,
+        OfficialV1,
+        RePhiEdit,
+        PhiEdit,
+        Nrlt
     }
 
     /// <summary>
     /// 事件
     /// </summary>
-    public static class Event
+    public static class Events
     {
         /// <summary>
         /// 事件模板
         /// </summary>
-        public class EventTemplate
+        public class Event
         {
             //Value
             public float startValue { get; set; }
@@ -522,146 +526,111 @@ namespace Phigros_Fanmade
             public double startTime { get; set; }
             public double endTime { get; set; }
         }
-
-        /// <summary>
-        /// X移动事件
-        /// </summary>
-        public class XMove : EventTemplate
-        {
-        }
-
-        /// <summary>
-        /// Y移动事件
-        /// </summary>
-        public class YMove : EventTemplate
-        {
-        }
-
-        /// <summary>
-        /// 透明度变化事件
-        /// </summary>
-        public class AlphaChange : EventTemplate
-        {
-        }
-
-        /// <summary>
-        /// 角度变化事件
-        /// </summary>
-        public class AngleChange : EventTemplate
-        {
-        }
-
-        /// <summary>
-        /// 流速变化事件
-        /// </summary>
-        public class SpeedEvent : EventTemplate
+        
+        public class SpeedEvent : Event
         {
             //Special
-            public double floorPosition { get; set; } = 0.0;
+            public double FloorPosition { get; set; }
         }
     }
 
-    public static class EventList
+    public class EventList : List<Events.Event>
     {
-        public class XMoveList : List<Event.XMove>
+        public float GetCurValue(double t)
         {
-        }
+            Events.Event previousEvent = null;
 
-        public class YMoveList : List<Event.YMove>
-        {
-        }
-
-        public class AlphaChangeList : List<Event.AlphaChange>
-        {
-        }
-
-        public class AngleChangeList : List<Event.AngleChange>
-        {
-        }
-
-        public class SpeedEventList : List<Event.SpeedEvent>
-        {
-            /// <summary>
-            /// 计算 SpeedEvent 的 FloorPosition
-            /// </summary>
-            /// <param name="speedEvent">速度事件</param>
-            /// <returns>经过更新的流速变更列表</returns>
-            public new void Add(Event.SpeedEvent speedEvent)
+            foreach (var change in this)
             {
-                base.Add(speedEvent);
-
-                // 遍历每个速度事件，计算 floorPosition
-                for (int i = 0; i < Count - 1; i++)
+                if (t >= change.startTime && t <= change.endTime)
                 {
-                    var lastEvent = this[i]; // 上一个事件
-                    var curEvent = this[i + 1]; // 当前事件
-
-                    // 获取上一个事件的时间段
-                    double lastStartTime = lastEvent.startTime;
-                    double lastEndTime = lastEvent.endTime;
-
-                    // 当前事件的开始时间
-                    double curStartTime = curEvent.startTime;
-
-                    // 检查时间段是否正确
-                    if (curStartTime < lastEndTime)
-                    {
-                        throw new InvalidOperationException("当前事件的开始时间不能早于上一个事件的结束时间");
-                    }
-
-                    // 计算当前事件的 floorPosition
-                    curEvent.floorPosition = lastEvent.floorPosition +
-                                             // 梯形积分：上一个事件的速度积分
-                                             (lastEvent.endValue + lastEvent.startValue) *
-                                             (lastEndTime - lastStartTime) / 2 +
-                                             // 区间外线性距离：上一个事件结束到当前事件开始
-                                             lastEvent.endValue * (curStartTime - lastEndTime);
+                    float normalizedTime = (float)((t - change.startTime) / (change.endTime - change.startTime));
+                    return Mathf.Lerp(change.startValue, change.endValue, normalizedTime);
                 }
+                previousEvent = change;
             }
 
-            /// <summary>
-            /// 获取当前时间的速度积分，计算Note和当前时间的floorPosition的主要方法
-            /// </summary>
-            /// <param name="time">当前时间，单位毫秒</param>
-            /// <returns>从谱面开始到当前时间的总路程</returns>
-            public double GetCurTimeSu(double time)
+            // 如果时间点不在任何变化区间内，使用上一个变化区间的 endValue
+            if (previousEvent != null)
             {
-                double floorPosition = 0.0;
-                foreach (var speedEvent in this)
+                return previousEvent.endValue;
+            }
+
+            throw new ArgumentException("时间点不在任何变化区间内，且没有上一个变化区间");
+        }
+    }
+
+    public class SpeedEventList : List<Events.SpeedEvent>
+    {
+        public void CalcFloorPosition()
+        {
+            foreach (Events.SpeedEvent lastEvent in this)
+            {
+                int i = IndexOf(lastEvent);
+                if (i == Count - 1) break;
+                var curEvent = this[i + 1];
+
+                double lastStartTime = lastEvent.startTime;
+                double lastEndTime = lastEvent.endTime;
+
+                double curStartTime = curEvent.startTime;
+
+
+                curEvent.FloorPosition +=
+                    lastEvent.FloorPosition +
+                    (lastEvent.endValue + lastEvent.startValue) * (lastEndTime - lastStartTime) / 2 +
+                    lastEvent.endValue * (curStartTime - lastEndTime) / 1;
+            }
+        }
+
+        /// <summary>
+        /// 获取当前时间的速度积分，计算Note和当前时间的floorPosition的主要方法
+        /// </summary>
+        /// <param name="time">当前时间，单位毫秒</param>
+        /// <returns>从谱面开始到当前时间的总路程</returns>
+        public double GetCurTimeSu(double time)
+        {
+            var floorPosition = 0.0d;
+            foreach (Events.SpeedEvent speedEvent in this)
+            {
+                var startTime = speedEvent.startTime;
+                var endTime = speedEvent.endTime;
+
+                var i = IndexOf(speedEvent);
+                if (Math.Abs(time - speedEvent.startTime) < 1e-5)
                 {
-                    double startTime = speedEvent.startTime;
-                    double endTime = speedEvent.endTime;
-
-                    if (time <= startTime)
-                    {
-                        break;
-                    }
-
-                    if (time <= endTime)
-                    {
-                        floorPosition += (
-                            speedEvent.startValue + (speedEvent.endValue - speedEvent.startValue) *
-                            (time - startTime) / (endTime - startTime)
-                        ) * (time - startTime) / 2;
-                        break;
-                    }
-
-                    floorPosition += (speedEvent.startValue + speedEvent.endValue) * (endTime - startTime) / 2;
+                    floorPosition += speedEvent.FloorPosition;
+                    break;
                 }
 
-                return floorPosition;
+                if (time <= speedEvent.endTime)
+                {
+                    floorPosition += speedEvent.FloorPosition +
+                                     (speedEvent.startValue + (speedEvent.endValue - speedEvent.startValue) *
+                                      (time - startTime) / (endTime - startTime) +
+                                      speedEvent.startValue) * (time - startTime) / 2;
+                    break;
+                }
+
+                if (Count - 1 != i && !(time <= this[i + 1].startTime)) continue;
+                floorPosition += speedEvent.FloorPosition +
+                                 (speedEvent.endValue + speedEvent.startValue) * (endTime - startTime) / 2 +
+                                 speedEvent.endValue * (time - endTime) / 1;
+                break;
             }
+
+            return floorPosition;
         }
     }
 
     public class EventLayer
     {
         //Event List
-        public EventList.XMoveList xMoveList { get; set; } = new();
-        public EventList.YMoveList yMoveList { get; set; } = new();
-        public EventList.AlphaChangeList alphaChangeList { get; set; } = new();
-        public EventList.AngleChangeList angleChangeList { get; set; } = new();
-        public EventList.SpeedEventList speedChangeList { get; set; } = new();
+        public EventList XMoveList = new();
+        public EventList YMoveList  = new();
+        public EventList AlphaChangeList = new();
+        public EventList AngleChangeList = new();
+        public SpeedEventList SpeedChangeList = new();
     }
 
     /// <summary>
@@ -671,7 +640,7 @@ namespace Phigros_Fanmade
     {
         public new void Add(EventLayer eventLayer)
         {
-            if (this.Count >= 5) throw new InvalidOperationException("事件层级不能超过5层");
+            if (Count >= 5) throw new InvalidOperationException("事件层级不能超过5层");
             base.Add(eventLayer);
         }
     }
@@ -690,21 +659,21 @@ namespace Phigros_Fanmade
             Flick = 4
         }
 
-        public NoteType type { get; set; }
+        public NoteType Type { get; set; }
 
         //Value
-        public float x { get; set; }
-        public float speedMultiplier { get; set; }
+        public float X { get; set; }
+        public float SpeedMultiplier { get; set; }
 
         //Special
-        public bool above { get; set; }
+        public bool Above { get; set; }
 
         //Time
         public double clickStartTime { get; set; }
         public double clickEndTime { get; set; }
 
         //SP
-        public double floorPosition { get; set; }
+        public double FloorPosition { get; set; }
     }
 
     /// <summary>
@@ -713,12 +682,12 @@ namespace Phigros_Fanmade
     public class JudgeLine
     {
         //Event List
-        public List<Event.XMove> xMoveList { get; set; } = new();
-        public List<Event.YMove> yMoveList { get; set; } = new();
-        public List<Event.AlphaChange> alphaChangeList { get; set; } = new();
-        public List<Event.AngleChange> angleChangeList { get; set; } = new();
+        public EventList xMoveList { get; set; } = new();
+        public EventList yMoveList { get; set; } = new();
+        public EventList alphaChangeList { get; set; } = new();
+        public EventList angleChangeList { get; set; } = new();
 
-        public EventList.SpeedEventList speedChangeList { get; set; } = new();
+        public SpeedEventList speedChangeList { get; set; } = new();
 
         //事件层级
         public List<EventLayer> eventLayers { get; set; } = new();

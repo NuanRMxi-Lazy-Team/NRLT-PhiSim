@@ -1,44 +1,40 @@
-﻿using System.Collections;
-using System;
-using Phigros_Fanmade;
+﻿using Phigros_Fanmade;
 using UnityEngine;
 
 public class Play_HoldHead : MonoBehaviour
 {
-    public Note note;
+    [HideInInspector]
+    public Note Note;
     public RectTransform noteRectTransform;
-    public Play_JudgeLine fatherJudgeLine;
-    public Play_GameManager GameManager;
-    public AudioClip HitClip;
-    public HitFx HitFx;
+    public JudgeLineScript fatherJudgeLine;
+    public Play_GameManager gameManager;
+    public AudioClip hitClip;
+    public HitFx hitFx;
     
-    private AudioSource HitAudioSource;
-    private bool hited = false;
-    private bool hitEnd = false;
-    private Renderer noteRenderer;
+    private Renderer _noteRenderer;
+    private GameObject _canvas;
 
     private void Start()
     {
-        noteRenderer = gameObject.GetComponent<Renderer>();
+        _noteRenderer = gameObject.GetComponent<Renderer>();
         noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
-        HitAudioSource = gameObject.AddComponent<AudioSource>();
-        HitAudioSource.clip = HitClip;
-        HitAudioSource.loop = false;
-        if (!note.above)
+
+        _canvas = GameObject.Find("Play Canvas");
+        if (!Note.Above)
         {
             //翻转自身贴图
-            noteRenderer.transform.Rotate(0, 0, 180);
+            _noteRenderer.transform.Rotate(0, 0, 180);
         }
     }
 
     private void Update()
     {
-        if (hitEnd) return;
+
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
         float yPos = CalculateYPosition(
-            note.clickStartTime,
-            GameManager.curTick);
-        noteRectTransform.anchoredPosition = new Vector2(note.x,
+            Note.clickStartTime,
+            gameManager.curTick);
+        noteRectTransform.anchoredPosition = new Vector2(Note.X,
             yPos);
     }
 
@@ -52,26 +48,18 @@ public class Play_HoldHead : MonoBehaviour
     {
         if (targetTime <= lastTime)
         {
-            //直接摧毁自己
-            if (!hited)
-            {
-                HitAudioSource.Play();
-                hited = true;
-            }
-
-            //摧毁渲染器
-            Destroy(noteRenderer);
-            //生成hitFx，恒定不旋转
-            var fxPos = fatherJudgeLine.CalcPositionXY(note.clickStartTime,note.x);
-            var hitFx = Instantiate(HitFx, new Vector3(fxPos.Item1,fxPos.Item2), Quaternion.identity);
-            hitFx.gameManager = GameManager;
-            //设置父对象为Canvas
-            hitFx.transform.SetParent(GameObject.Find("Play Canvas").transform);
-            hitFx.GetComponent<RectTransform>().anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
             
-            //进入协程，等待音效结束
-            StartCoroutine(WaitForDestroy());
-            hitEnd = true;
+            //生成hitFx，恒定不旋转
+            var fxPos = fatherJudgeLine.CalcPositionXY(Note.clickStartTime,Note.X);
+            var hitFx = Instantiate(this.hitFx, new Vector3(fxPos.Item1,fxPos.Item2), Quaternion.identity);
+            hitFx.hitAudioClip = hitClip;
+            hitFx.gameManager = gameManager;
+            //设置父对象为Canvas
+            hitFx.transform.SetParent(_canvas.transform);
+            hitFx.rectTransform.anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
+            
+            //摧毁
+            Destroy(gameObject);
             return 0;
         }
 
@@ -81,28 +69,15 @@ public class Play_HoldHead : MonoBehaviour
         float newYPosition = (float)
         (
             fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(lastTime) -
-            note.floorPosition
+            Note.FloorPosition
         );//* note.speedMultiplier;
-        float spriteHeight = noteRenderer.bounds.size.y;
-        if (note.above)
+        float spriteHeight = _noteRenderer.bounds.size.y;
+        if (Note.Above)
         {
             //翻转y坐标
             //获得自己的sprite高度
             return -newYPosition + spriteHeight / 2;
         }
-
         return newYPosition - spriteHeight / 2;
-    }
-
-    private IEnumerator WaitForDestroy()
-    {
-        //记录当前时间
-        double now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        //加上音效时长，获得音效结束时间
-        var endTime = now + HitClip.length * 1000;
-        //等待音效结束
-        while (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < endTime) yield return null;
-
-        Destroy(gameObject);
     }
 }

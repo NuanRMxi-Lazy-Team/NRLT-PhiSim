@@ -5,77 +5,56 @@ namespace PhigrosOfficial
 {
     public class V3
     {
-        public List<JudgeLine> judgeLineList { get; set; } //判定线列表
+        [JsonProperty("judgeLineList")] public List<JudgeLine> JudgeLineList; //判定线列表
         
-
-
-
-
-
-
+        
 
         public class JudgeLine
         {
-            public float bpm { get; set; }
-            public float offset { get; set; }//单位为秒
-            [JsonProperty("judgeLineMoveEvents")]
-            public List<MoveEvent> moveEvents { get; set; }
-            [JsonProperty("judgeLineRotateEvents")]
-            public List<RotateEvent> rotateEvents { get; set; }
-            [JsonProperty("judgeLineDisappearEvents")]
-            public List<AlphaEvent> alphaEvents { get; set; }
+            [JsonProperty("bpm")] public float Bpm;
+            [JsonProperty("offset")] public float Offset;                                 // 单位为秒
+            [JsonProperty("judgeLineMoveEvents")] public List<MoveEvent> MoveEvents;      // 判定线移动事件
+            [JsonProperty("judgeLineRotateEvents")] public List<Event> RotateEvents;      // 判定线旋转事件
+            [JsonProperty("judgeLineDisappearEvents")] public List<Event> AlphaEvents;    // 判定线不透明度事件
             
             /// <summary>
             /// 判定线移动事件（XY绑定）
             /// </summary>
             public class MoveEvent
             {
-                public float startTime { get; set; }
-                public float endTime { get; set; }
-                [JsonProperty("start")]
-                public float xPositionStart { get; set; }
-                [JsonProperty("end")]
-                public float xPositionEnd { get; set; }
-                [JsonProperty("start2")]
-                public float yPositionStart { get; set; }
-                [JsonProperty("end2")]
-                public float yPositionEnd { get; set; }
+                [JsonProperty("startTime")] public float StartTime;
+                [JsonProperty("endTime")] public float EndTime;
+                [JsonProperty("start")] public float XPositionStart;
+                [JsonProperty("end")] public float XPositionEnd;
+                [JsonProperty("start2")] public float YPositionStart;
+                [JsonProperty("end2")] public float YPositionEnd;
             }
             
-            /// <summary>
-            /// 判定线旋转事件
-            /// </summary>
-            public class RotateEvent
-            { 
-                public float startTime { get; set; }
-                public float endTime { get; set; }
-                [JsonProperty("start")]
-                public float startValue { get; set; }
-                [JsonProperty("end")]
-                public float endValue { get; set; }
-            }
 
             /// <summary>
-            /// 判定线不透明度事件
+            /// 普通事件
             /// </summary>
-            public class AlphaEvent
+            public class Event
             {
-                public float startTime { get; set; }
-                public float endTime { get; set; }
-                [JsonProperty("start")]
-                public float startValue { get; set; }
-                [JsonProperty("end")]
-                public float endValue { get; set; }
+                [JsonProperty("startTime")] public float StartTime;
+                [JsonProperty("endTime")] public float EndTime;
+                [JsonProperty("start")] public float StartValue;
+                [JsonProperty("end")] public float EndValue;
             }
-            
-            public class SpeedEvent
+
+            public class SpeedEventList : List<SpeedEvent>
             {
-                public float startTime { get; set; }
-                public float endTime { get; set; }
-                [JsonProperty("start")]
-                public float startValue { get; set; }
-                [JsonProperty("end")]
-                public float endValue { get; set; }
+                public new void Add(SpeedEvent e)
+                {
+                    base.Add(e);
+                }
+            }
+            /// <summary>
+            /// 判定线速度事件
+            /// </summary>
+            public class SpeedEvent : Event
+            {
+                public float? FloorPosition;
             }
         }
         

@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 451510959}
   - component: {fileID: 451510958}
   - component: {fileID: 451510962}
+  - component: {fileID: 451510963}
   m_Layer: 5
   m_Name: Play Canvas
   m_TagString: Untagged
@@ -248,6 +249,18 @@ MonoBehaviour:
   curTick: 0
   Time: {fileID: 1828669477}
   Illistration: {fileID: 1424897409}
+--- !u!114 &451510963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 451510957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35475f9f646c4984a98e035e37d1686e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &695033582
 GameObject:
   m_ObjectHideFlags: 0
@@ -281,10 +294,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 451510961}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -880, y: 470}
-  m_SizeDelta: {x: 50, y: 50}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -907, y: 480.25}
+  m_SizeDelta: {x: -1886, y: -1039.5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &695033584
 MonoBehaviour:
@@ -812,8 +825,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -660, y: 495}
-  m_SizeDelta: {x: 600, y: 50}
+  m_AnchoredPosition: {x: 800, y: 480}
+  m_SizeDelta: {x: 234.4844, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1828669477
 MonoBehaviour:
@@ -835,7 +848,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 0.0
+  m_text: 0000000
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 6e0d1db42d5797f40b4da7f131c10a78, type: 2}
   m_sharedMaterial: {fileID: 4699012091173964810, guid: 6e0d1db42d5797f40b4da7f131c10a78, type: 2}
@@ -862,8 +875,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 45
-  m_fontSizeBase: 45
+  m_fontSize: 55
+  m_fontSizeBase: 55
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -872,7 +885,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: -8
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0

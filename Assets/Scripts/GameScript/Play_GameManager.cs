@@ -44,7 +44,7 @@ public class Play_GameManager : MonoBehaviour
     
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         //ChartCache.Instance.chart = Chart.ChartConverter(File.ReadAllBytes("D:\\PhiOfaChart\\SMS.zip"), "D:\\PhiOfaChart",".zip");
         float screenWidth = Screen.width;
@@ -79,12 +79,11 @@ public class Play_GameManager : MonoBehaviour
         }
     }
 
-    void Update()
+    private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             musicAudioSource.Stop();
-            SceneManager.LoadScene(0);
         }
         if (Input.GetKeyDown(KeyCode.Space))
         {
@@ -164,10 +163,10 @@ public class Play_GameManager : MonoBehaviour
         ChartCache.Instance.HitFxs = hitFxs; 
         
         var chart = ChartCache.Instance.chart;
-        StartCoroutine(MusicPlay(chart.music, 0));
+        StartCoroutine(MusicPlay(chart.Music, 0));
         
         GameObject canvas = GameObject.Find("Play Canvas");
-        for (int i = 0; i < chart.judgeLineList.Count; i++)
+        for (int i = 0; i < chart.JudgeLineList.Count; i++)
         {
             // 生成判定线实例，设置父对象为画布
             GameObject instance = Instantiate(JudgeLine, canvas.transform);
@@ -175,18 +174,18 @@ public class Play_GameManager : MonoBehaviour
             // 设置判定线位置到画布顶端且为不可视区域
             instance.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 1000);
             // 获取预制件的脚本组件
-            var script = instance.GetComponent<Play_JudgeLine>();
+            var script = instance.GetComponent<JudgeLineScript>();
             // 设置脚本中的公共变量
-            script.judgeLine = chart.judgeLineList[i];
+            script.judgeLine = chart.JudgeLineList[i];
             script.whoami = i;
             script.GameManager = this;
             
             //生成note实例
             List<Note> holdList = new();
-            foreach (var note in chart.judgeLineList[i].noteList)
+            foreach (var note in chart.JudgeLineList[i].noteList)
             {
                 GameObject noteGameObject;
-                switch (note.type)
+                switch (note.Type)
                 {
                     case Note.NoteType.Tap:
                         noteGameObject = Instantiate(TapNote);
@@ -225,15 +224,15 @@ public class Play_GameManager : MonoBehaviour
             foreach (var hold in holdList)
             {
                 var head = Instantiate(HoldHead,instance.GetComponent<RectTransform>());
-                head.GetComponent<Play_HoldHead>().HitClip = tapAudioClip;
+                head.GetComponent<Play_HoldHead>().hitClip = tapAudioClip;
                 head.GetComponent<Play_HoldHead>().fatherJudgeLine = script;
-                head.GetComponent<Play_HoldHead>().note = hold;
-                head.GetComponent<Play_HoldHead>().GameManager = this;
+                head.GetComponent<Play_HoldHead>().Note = hold;
+                head.GetComponent<Play_HoldHead>().gameManager = this;
                 
                 var body = Instantiate(HoldBody,instance.GetComponent<RectTransform>());
                 body.GetComponent<Play_HoldBody>().fatherJudgeLine = script;
-                body.GetComponent<Play_HoldBody>().note = hold;
-                body.GetComponent<Play_HoldBody>().GameManager = this;
+                body.GetComponent<Play_HoldBody>().Note = hold;
+                body.GetComponent<Play_HoldBody>().gameManager = this;
                 
                 var end = Instantiate(HoldEnd, instance.GetComponent<RectTransform>());
                 end.GetComponent<Play_HoldEnd>().fatherJudgeLine = script;

@@ -69,6 +69,7 @@ crashlytics-build.properties
 #other
 .utmp
 .idea
+.vscode
 ChartFileCache
 *.log
 /Assets/Resources/HitFx/*
