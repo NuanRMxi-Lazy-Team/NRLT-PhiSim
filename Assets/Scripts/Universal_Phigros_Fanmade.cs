@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 using System.IO.Compression;
@@ -33,39 +32,14 @@ namespace Phigros_Fanmade
             return originalTime * 1000; //返回毫秒
         }
         
-        private static int[] ConvertToRpeTime(float t, float bpm)
+        private static int[] ConvertToRpeTime(int beat128)
         {
-            // T = BPM/1.875f, 转换为拍数
-            float beats = t / 128.0f;
-    
-            // 获取整数部分
-            int wholePart = (int)beats;
-    
-            // 获取小数部分并转换为分数
-            float fractionalPart = beats - wholePart;
-            const int maxDenominator = 32; // 使用音乐常用的最大分母
-            int numerator = (int)Math.Round(fractionalPart * maxDenominator);
-            int denominator = maxDenominator;
-    
-            // 约分
-            int gcd = GCD(numerator, denominator);
-            numerator /= gcd;
-            denominator /= gcd;
-    
-            // 返回数组 [整数部分, 分子, 分母]
-            return new int[] { wholePart, numerator, denominator };
-        }
-
-        // 计算最大公约数的辅助方法
-        private static int GCD(int a, int b)
-        {
-            while (b != 0)
-            {
-                int temp = b;
-                b = a % b;
-                a = temp;
-            }
-            return a;
+            int[] result = new int[3];
+            result[0] = beat128 / 32;
+            int remainder = beat128 % 32;
+            result[1] = remainder;
+            result[2] = 32;
+            return result;
         }
 
         /// <summary>
@@ -107,7 +81,7 @@ namespace Phigros_Fanmade
         /// <summary>
         /// wav音频文件转AudioClip
         /// </summary>
-        /// <param name="wavBytes"></param>
+        /// <param name="filePath">文件路径</param>
         /// <returns>此文件对应的AudioClip</returns>
         [CanBeNull]
         private static AudioClip LoadAudioClip(string filePath)
@@ -115,14 +89,17 @@ namespace Phigros_Fanmade
             using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + filePath, AudioType.WAV))
             {
                 www.SendWebRequest();
-        
-                while (!www.isDone) { }
-        
+
+                while (!www.isDone)
+                {
+                }
+
                 if (www.result == UnityWebRequest.Result.Success)
                 {
                     return DownloadHandlerAudioClip.GetContent(www);
                 }
             }
+
             return null;
         }
 
@@ -158,9 +135,6 @@ namespace Phigros_Fanmade
 
         #endregion
 
-        //List
-        public List<JudgeLine> JudgeLineList = new();
-
         //Data
         public string RawChart;
         private static AudioClip musicTemp;
@@ -171,7 +145,6 @@ namespace Phigros_Fanmade
         [CanBeNull]
         public static async Task<RpeChart> ChartConverter(byte[] fileData, string cacheFileDir, string fileExtension)
         {
-            
             //var table = LocalizationSettings.StringDatabase.GetTable("Languages");
             var chart = await Task.Run(() =>
             {
@@ -204,7 +177,7 @@ namespace Phigros_Fanmade
                     //将文件解压
                     File.WriteAllBytes(cacheFileDir + "/ChartFileCache.zip", fileData);
                     ZipFile.ExtractToDirectory(cacheFileDir + "/ChartFileCache.zip", cacheFileDir);
-                    
+
                     // 查找目录中有多少个.json文件
                     var jsonFiles = Directory.GetFiles(cacheFileDir, "*.json");
                     // 如果啥也没有，抛出异常，因为既没有谱面也没有配置
@@ -213,6 +186,7 @@ namespace Phigros_Fanmade
                         Log.Write("The selected file cannot be parsed into the config. json file", LogType.Error);
                         throw new Exception(); //(table.GetEntry("Chart_Config_Err").GetLocalizedString());
                     }
+
                     string rawChart = "";
                     // 如果大于一个json文件，选择名称不是config.json的文件直接作为谱面
                     if (jsonFiles.Length > 1)
@@ -231,13 +205,16 @@ namespace Phigros_Fanmade
                         // 如果只有一个json文件，直接读取
                         rawChart = File.ReadAllText(jsonFiles[0]);
                     }
+
                     // 寻找音乐文件，后缀为所有音频格式，如果找到多个，选择与谱面同名（不包含后缀）的音频文件
                     var musicFile = Directory.GetFiles(cacheFileDir, "*.*", SearchOption.AllDirectories)
-                        .Where(s => s.EndsWith(".wav") || s.EndsWith(".mp3") || s.EndsWith(".ogg") || s.EndsWith(".flac"))
+                        .Where(s => s.EndsWith(".wav") || s.EndsWith(".mp3") || s.EndsWith(".ogg") ||
+                                    s.EndsWith(".flac"))
                         .ToArray().First();
                     // 寻找插图文件，后缀为所有图片格式，如果找到多个，选择与谱面同名（不包含后缀）的图片文件
                     var illustrationFile = Directory.GetFiles(cacheFileDir, "*.*", SearchOption.AllDirectories)
-                        .Where(s => s.EndsWith(".png") || s.EndsWith(".jpg") || s.EndsWith(".jpeg") || s.EndsWith(".bmp"))
+                        .Where(s => s.EndsWith(".png") || s.EndsWith(".jpg") || s.EndsWith(".jpeg") ||
+                                    s.EndsWith(".bmp"))
                         .ToArray().First();
 
                     var rpeChart = new RpeChart();
@@ -263,10 +240,10 @@ namespace Phigros_Fanmade
                         Log.Write("Load illustration is Failed");
                         throw new Exception(); //missingFile + "illustration");
                     }
-                    
+
                     //读取谱面
                     var jsonChart = JSON.Parse(rawChart);
-                    
+
                     //载入音频和插图
                     Main_Button_Click.Enqueue(() =>
                     {
@@ -281,7 +258,7 @@ namespace Phigros_Fanmade
                     {
                         //第三代Phigros官谱
                         Log.Write("Chart Version is Official_V3");
-                        
+
 
                         //读取出所有判定线
                         var judgeLineList = jsonChart["judgeLineList"];
@@ -300,6 +277,7 @@ namespace Phigros_Fanmade
                                     StartTime = new RpeClass.Beat()
                                 });
                             }
+
                             var rpeJudgeLine = new RpeClass.JudgeLine();
                             var rpeEventLayer = new RpeClass.EventLayer();
                             //读取出所有事件
@@ -315,22 +293,13 @@ namespace Phigros_Fanmade
                             var judgeLineSpeedChangeEventList =
                                 judgeLineList[i]["speedEvents"]; //Note流速变更事件
 
-                            //判定线初始化
-                            JudgeLine judgeLine = new();
                             //转换XY Move事件
                             for (int j = 0; j < judgeLineMoveEventList.Count; j++)
                             {
                                 //时间转换
-                                var eventStartTime = judgeLineMoveEventList[j]["startTime"] <= 0.0
-                                    ? 0 //超界，按0处理
-                                    : OfficialV3_TimeConverter(judgeLineMoveEventList[j]["startTime"],
-                                        judgeLineBpm); //转换T为毫秒
-                                var rpeStartBeat = ConvertToRpeTime(judgeLineMoveEventList[j]["startTime"], judgeLineBpm);
-
-                                var eventEndTime = OfficialV3_TimeConverter(judgeLineMoveEventList[j]["endTime"],
-                                    judgeLineBpm);
-
-                                var rpeEndBeat = ConvertToRpeTime(judgeLineMoveEventList[j]["endTime"], judgeLineBpm);
+                                var rpeStartBeat =
+                                    ConvertToRpeTime(judgeLineMoveEventList[j]["startTime"]);
+                                var rpeEndBeat = ConvertToRpeTime(judgeLineMoveEventList[j]["endTime"]);
 
                                 //转换与添加坐标系
                                 var eventXStartValue =
@@ -342,14 +311,6 @@ namespace Phigros_Fanmade
                                 var eventYEndValue =
                                     CoordinateTransformer.TransformY(judgeLineMoveEventList[j]["end2"]);
 
-                                //添加数值到列表
-                                judgeLine.xMoveList.Add(new Events.Event
-                                {
-                                    startTime = eventStartTime,
-                                    endTime = eventEndTime,
-                                    startValue = eventXStartValue,
-                                    endValue = eventXEndValue
-                                });
                                 // RPE
                                 rpeEventLayer.MoveXEvents.Add(new RpeClass.Event
                                 {
@@ -357,13 +318,6 @@ namespace Phigros_Fanmade
                                     EndTime = new RpeClass.Beat(rpeEndBeat),
                                     Start = eventXStartValue,
                                     End = eventXEndValue
-                                });
-                                judgeLine.yMoveList.Add(new Events.Event
-                                {
-                                    startTime = eventStartTime,
-                                    endTime = eventEndTime,
-                                    startValue = eventYStartValue,
-                                    endValue = eventYEndValue
                                 });
                                 // RPE
                                 rpeEventLayer.MoveYEvents.Add(new RpeClass.Event
@@ -375,33 +329,18 @@ namespace Phigros_Fanmade
                                 });
                             }
 
-                            judgeLine.angleChangeList = new EventList(); //角度变更事件初始化
                             //转换角度变更事件
                             for (int j = 0; j < judgeLineAngleChangeEventList.Count; j++)
                             {
                                 //时间转换
-                                var eventStartTime = judgeLineAngleChangeEventList[j]["startTime"] <= 0.0
-                                    ? 0 //超界，按0处理
-                                    : OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["startTime"],
-                                        judgeLineBpm); //转换T为毫秒
                                 // RPE
-                                var rpeStartBeat = ConvertToRpeTime(judgeLineAngleChangeEventList[j]["startTime"], judgeLineBpm);
+                                var rpeStartBeat = ConvertToRpeTime(judgeLineAngleChangeEventList[j]["startTime"]);
 
-                                var eventEndTime = OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["endTime"],
-                                    judgeLineBpm); //转换T为毫秒
-                                
                                 // RPE
-                                var rpeEndBeat = ConvertToRpeTime(judgeLineAngleChangeEventList[j]["endTime"], judgeLineBpm);
+                                var rpeEndBeat = ConvertToRpeTime(judgeLineAngleChangeEventList[j]["endTime"]);
 
                                 //添加数值到列表
-                                judgeLine.angleChangeList.Add(new Events.Event
-                                {
-                                    startTime = eventStartTime,
-                                    endTime = eventEndTime,
-                                    startValue = judgeLineAngleChangeEventList[j]["start"],
-                                    endValue = judgeLineAngleChangeEventList[j]["end"]
-                                });
-                                
+
                                 // RPE
                                 rpeEventLayer.RotateEvents.Add(new RpeClass.Event
                                 {
@@ -415,30 +354,14 @@ namespace Phigros_Fanmade
                             //转换透明度变更事件
                             for (int j = 0; j < judgeLineAlphaChangeEventList.Count; j++)
                             {
-                                //时间转换
-                                var eventStartTime = judgeLineAlphaChangeEventList[j]["startTime"] <= 0.0
-                                    ? 0 //超界，按0处理
-                                    : OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["startTime"],
-                                        judgeLineBpm); //转换T为毫秒
-                                
                                 // RPE
-                                var rpeStartBeat = ConvertToRpeTime(judgeLineAlphaChangeEventList[j]["startTime"], judgeLineBpm);
+                                var rpeStartBeat = ConvertToRpeTime(judgeLineAlphaChangeEventList[j]["startTime"]);
 
-                                var eventEndTime = OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["endTime"],
-                                    judgeLineBpm); //转换T为毫秒 
-                                
                                 // RPE
-                                var rpeEndBeat = ConvertToRpeTime(judgeLineAlphaChangeEventList[j]["endTime"], judgeLineBpm);
+                                var rpeEndBeat = ConvertToRpeTime(judgeLineAlphaChangeEventList[j]["endTime"]);
 
                                 //添加数值到列表
-                                judgeLine.alphaChangeList.Add(new Events.Event
-                                {
-                                    startTime = eventStartTime,
-                                    endTime = eventEndTime,
-                                    startValue = judgeLineAlphaChangeEventList[j]["start"],
-                                    endValue = judgeLineAlphaChangeEventList[j]["end"]
-                                });
-                                
+
                                 // RPE，官谱中1为完全不透明，0为完全透明，在RPE中，255为完全不透明，0为完全透明，确保转换并丢弃小数点
                                 rpeEventLayer.AlphaEvents.Add(new RpeClass.Event
                                 {
@@ -452,28 +375,12 @@ namespace Phigros_Fanmade
                             //转换速度变更事件
                             for (int j = 0; j < judgeLineSpeedChangeEventList.Count; j++)
                             {
-                                //时间转换
-                                double eventStartTime = judgeLineSpeedChangeEventList[j]["startTime"] <= 0.0
-                                    ? 0 //超界，按0处理
-                                    : OfficialV3_TimeConverter(judgeLineSpeedChangeEventList[j]["startTime"],
-                                        judgeLineBpm); //转换T为毫秒 
                                 // RPE
-                                var rpeStartBeat = ConvertToRpeTime(judgeLineSpeedChangeEventList[j]["startTime"], judgeLineBpm);
+                                var rpeStartBeat = ConvertToRpeTime(judgeLineSpeedChangeEventList[j]["startTime"]);
 
-                                double eventEndTime = OfficialV3_TimeConverter(
-                                    judgeLineSpeedChangeEventList[j]["endTime"],
-                                    judgeLineBpm); //转换T为毫秒 
                                 // RPE
-                                var rpeEndBeat = ConvertToRpeTime(judgeLineSpeedChangeEventList[j]["endTime"], judgeLineBpm);
+                                var rpeEndBeat = ConvertToRpeTime(judgeLineSpeedChangeEventList[j]["endTime"]);
 
-                                //添加到列表
-                                judgeLine.speedChangeList.Add(new Events.SpeedEvent
-                                {
-                                    startTime = eventStartTime,
-                                    endTime = eventEndTime,
-                                    startValue = judgeLineSpeedChangeEventList[j]["value"] / 1.5f,
-                                    endValue = judgeLineSpeedChangeEventList[j]["value"] / 1.5f //官谱速度无任何缓动，只有关键帧
-                                });
                                 // RPE
                                 rpeEventLayer.SpeedEvents.Add(new RpeClass.SpeedEvent
                                 {
@@ -483,10 +390,8 @@ namespace Phigros_Fanmade
                                     End = judgeLineSpeedChangeEventList[j]["value"] * RpeSpeedToOfficial
                                 });
                             }
-
-                            judgeLine.speedChangeList.CalcFloorPosition();
+                            rpeEventLayer.SpeedEvents.CalcFloorPosition(rpeChart.BpmList);
                             rpeJudgeLine.EventLayers.Add(rpeEventLayer);
-
 
                             bool setAbove = true;
                             setNote:
@@ -500,61 +405,26 @@ namespace Phigros_Fanmade
                             for (int j = 0; j < noteList.Count; j++)
                             {
                                 //Note类型识别
-                                Note.NoteType noteType;
-                                switch ((int)noteList[j]["type"])
-                                {
-                                    case 1:
-                                        noteType = Note.NoteType.Tap;
-                                        break;
-                                    case 2:
-                                        noteType = Note.NoteType.Drag;
-                                        break;
-                                    case 3:
-                                        noteType = Note.NoteType.Hold;
-                                        break;
-                                    case 4:
-                                        noteType = Note.NoteType.Flick;
-                                        break;
-                                    default:
-                                        Log.Write(
-                                            $"Unknown note types in {noteList[j]}\nThe chart may be damaged",
-                                            LogType.Error);
-                                        throw new Exception("Unknown note types, Chart may be damaged");
-                                }
+                                int noteType;
+                                noteType = (int)noteList[j]["type"];
 
-                                //打击时刻转换
-                                double noteClickStartTime =
-                                    OfficialV3_TimeConverter(noteList[j]["time"], judgeLineBpm);
                                 // RPE
-                                var rpeClickBeat = ConvertToRpeTime(noteList[j]["time"], judgeLineBpm);
-                                double noteClickEndTime = noteType == Note.NoteType.Hold
-                                    ? OfficialV3_TimeConverter(noteList[j]["holdTime"], judgeLineBpm) +
-                                      noteClickStartTime
-                                    : noteClickStartTime;
+                                var rpeClickBeat = ConvertToRpeTime(noteList[j]["time"]);
                                 // RPE
-                                var rpeEndBeat = ConvertToRpeTime((int)noteList[j]["time"] + (int)noteList[j]["holdTime"], judgeLineBpm);
+                                var rpeEndBeat =
+                                    ConvertToRpeTime((int)noteList[j]["time"] + (int)noteList[j]["holdTime"]);
 
                                 //添加Note
-                                judgeLine.noteList.Add(new Note
-                                {
-                                    Type = noteType,
-                                    clickStartTime = noteClickStartTime,
-                                    clickEndTime = noteClickEndTime,
-                                    //x = CoordinateTransformer.TransformX(noteList[j]["positionX"]),
-                                    X = (float)noteList[j]["positionX"] * 108f,
-                                    SpeedMultiplier = noteList[j]["speed"],
-                                    Above = setAbove,
-                                    FloorPosition =
-                                        judgeLine.speedChangeList.GetCurTimeSu(noteClickStartTime), //这是临时修改。
-                                    //floorPosition = float.Parse(noteList[j]["floorPosition"].ToString()) * 100f
-                                });
-                                // RPE，与官谱不同，note类型，1 为 Tap、2 为 Hold、3 为 Flick、4 为 Drag
+
+                                // RPE，与官谱不同，note类型，1为Tap、2为Hold、3为Flick、4为Drag
+                                // 官谱为：1为Tap、2为Drag、3为Hold、4为Flick
                                 int rpeNoteType = noteType switch
                                 {
-                                    Note.NoteType.Tap => 1,
-                                    Note.NoteType.Hold => 2,
-                                    Note.NoteType.Flick => 3,
-                                    Note.NoteType.Drag => 4
+                                    1 => 1,
+                                    2 => 4,
+                                    3 => 2,
+                                    4 => 3,
+                                    _ => 1
                                 };
                                 rpeJudgeLine.Notes.Add(new RpeClass.Note
                                 {
@@ -563,8 +433,9 @@ namespace Phigros_Fanmade
                                     EndTime = new RpeClass.Beat(rpeEndBeat),
                                     PositionX = (float)noteList[j]["positionX"] * 108f,
                                     SpeedMultiplier = noteList[j]["speed"],
-                                    Above = setAbove ? 1 : 0,
-                                    FloorPosition = rpeJudgeLine.EventLayers.GetCurFloorPosition(new RpeClass.Beat(rpeClickBeat).CurTime(rpeChart.BpmList),rpeChart.BpmList)
+                                    Above = setAbove ? 1 : 2,
+                                    FloorPosition = rpeJudgeLine.EventLayers.GetCurFloorPosition(
+                                        new RpeClass.Beat(rpeClickBeat).CurTime(rpeChart.BpmList), rpeChart.BpmList)
                                 });
                             }
 
@@ -575,10 +446,16 @@ namespace Phigros_Fanmade
                             }
 
                             //添加判定线
-                            //chart.JudgeLineList.Add(judgeLine);
                             rpeChart.JudgeLineList.Add(rpeJudgeLine);
                         }
 
+                        //检查是否被赋值，没有就等待到被赋值
+                        while (musicTemp == null || illustrationTemp == null)
+                        {
+                        }
+
+                        rpeChart.Music = musicTemp;
+                        rpeChart.Illustration = illustrationTemp;
                         return rpeChart;
                     }
                     else if (jsonChart["formatVersion"] == 1)
@@ -602,15 +479,19 @@ namespace Phigros_Fanmade
                             foreach (var note in judgeLine.Notes)
                             {
                                 note.FloorPosition =
-                                    judgeLine.EventLayers.GetCurFloorPosition(note.StartTime.CurTime(rpeChart.BpmList),rpeChart.BpmList);
+                                    judgeLine.EventLayers.GetCurFloorPosition(note.StartTime.CurTime(rpeChart.BpmList),
+                                        rpeChart.BpmList);
                             }
                         }
-                        
+
+                        //检查是否被赋值，没有就等待到被赋值
+                        while (musicTemp == null || illustrationTemp == null)
+                        {
+                        }
+
                         rpeChart.Music = musicTemp;
                         rpeChart.Illustration = illustrationTemp;
                         return rpeChart;
-                        //Log.Write("Chart Version is RePhiEdi, but this chart is not supported.");
-                        //throw new NotSupportedException("this version is not supported");
                     }
                     else
                     {
@@ -633,70 +514,7 @@ namespace Phigros_Fanmade
     }
 
 
-    /// <summary>
-    /// 谱面类型
-    /// </summary>
-    public enum ChartType
-    {
-        OfficialV3,
-        OfficialV1,
-        RePhiEdit,
-        PhiEdit,
-        Nrlt
-    }
-
-    /// <summary>
-    /// 事件
-    /// </summary>
-    public static class Events
-    {
-        /// <summary>
-        /// 事件模板
-        /// </summary>
-        public class Event
-        {
-            //Value
-            public float startValue { get; set; }
-            public float endValue { get; set; }
-
-            //Time
-            public double startTime { get; set; }
-            public double endTime { get; set; }
-        }
-        
-        public class SpeedEvent : Event
-        {
-            //Special
-            public double FloorPosition { get; set; }
-        }
-    }
-
-    public class EventList : List<Events.Event>
-    {
-        public float GetCurValue(double t)
-        {
-            Events.Event previousEvent = null;
-
-            foreach (var change in this)
-            {
-                if (t >= change.startTime && t <= change.endTime)
-                {
-                    float normalizedTime = (float)((t - change.startTime) / (change.endTime - change.startTime));
-                    return Mathf.Lerp(change.startValue, change.endValue, normalizedTime);
-                }
-                previousEvent = change;
-            }
-
-            // 如果时间点不在任何变化区间内，使用上一个变化区间的 endValue
-            if (previousEvent != null)
-            {
-                return previousEvent.endValue;
-            }
-
-            throw new ArgumentException("时间点不在任何变化区间内，且没有上一个变化区间");
-        }
-    }
-
+    /*
     public class SpeedEventList : List<Events.SpeedEvent>
     {
         public void CalcFloorPosition()
@@ -719,6 +537,8 @@ namespace Phigros_Fanmade
                     lastEvent.endValue * (curStartTime - lastEndTime) / 1;
             }
         }
+
+
 
         /// <summary>
         /// 获取当前时间的速度积分，计算Note和当前时间的floorPosition的主要方法
@@ -759,77 +579,5 @@ namespace Phigros_Fanmade
             return floorPosition;
         }
     }
-
-    public class EventLayer
-    {
-        //Event List
-        public EventList XMoveList = new();
-        public EventList YMoveList  = new();
-        public EventList AlphaChangeList = new();
-        public EventList AngleChangeList = new();
-        public SpeedEventList SpeedChangeList = new();
-    }
-
-    /// <summary>
-    /// RPE特性：事件层级
-    /// </summary>
-    public class EventLayers : List<EventLayer>
-    {
-        public new void Add(EventLayer eventLayer)
-        {
-            if (Count >= 5) throw new InvalidOperationException("事件层级不能超过5层");
-            base.Add(eventLayer);
-        }
-    }
-
-    /// <summary>
-    /// 音符
-    /// </summary>
-    public class Note
-    {
-        //Type
-        public enum NoteType
-        {
-            Tap = 1,
-            Drag = 2,
-            Hold = 3,
-            Flick = 4
-        }
-
-        public NoteType Type { get; set; }
-
-        //Value
-        public float X { get; set; }
-        public float SpeedMultiplier { get; set; }
-
-        //Special
-        public bool Above { get; set; }
-
-        //Time
-        public double clickStartTime { get; set; }
-        public double clickEndTime { get; set; }
-
-        //SP
-        public double FloorPosition { get; set; }
-    }
-
-    /// <summary>
-    /// 判定线
-    /// </summary>
-    public class JudgeLine
-    {
-        //Event List
-        public EventList xMoveList { get; set; } = new();
-        public EventList yMoveList { get; set; } = new();
-        public EventList alphaChangeList { get; set; } = new();
-        public EventList angleChangeList { get; set; } = new();
-
-        public SpeedEventList speedChangeList { get; set; } = new();
-
-        //事件层级
-        public List<EventLayer> eventLayers { get; set; } = new();
-
-        //Note List
-        public List<Note> noteList { get; set; } = new();
-    }
+    */
 }

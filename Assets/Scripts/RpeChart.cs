@@ -14,11 +14,10 @@ namespace RePhiEdit
         [JsonProperty("BPMList")] public List<RpeClass.RpeBpm> BpmList = new();
         [JsonProperty("META")] public RpeClass.Meta Meta = new();
         [JsonProperty("judgeLineList")] public List<RpeClass.JudgeLine> JudgeLineList = new();
-        
+
         // 模拟器私有部分
         public Sprite Illustration;
         public AudioClip Music;
-        
     }
 
     public static class RpeClass
@@ -42,7 +41,7 @@ namespace RePhiEdit
                 {
                     if (index > 2)
                     {
-                        throw new System.IndexOutOfRangeException();
+                        throw new IndexOutOfRangeException();
                     }
 
                     return _time[index];
@@ -51,7 +50,7 @@ namespace RePhiEdit
                 {
                     if (index > 2)
                     {
-                        throw new System.IndexOutOfRangeException();
+                        throw new IndexOutOfRangeException();
                     }
 
                     _time[index] = value;
@@ -128,13 +127,13 @@ namespace RePhiEdit
             [JsonProperty("zOrder")] public int ZOrder; // Z轴顺序
             [JsonProperty("attachUI")] [CanBeNull] public string AttachUi; // 绑定UI名，当不绑定时为null
             [JsonProperty("isGif")] public bool IsGif; // 材质是否为GIF
-            
+
             // 单独的方法，用于转换原始坐标系 X轴范围为 -675 ~ 675，Y轴范围为 -450 ~ 450到 1920x1080坐标系
             public void CoordinateTransformer()
             {
                 // X轴：从 -675~675 直接映射到 -960~960
                 // Y轴：从 -450~450 直接映射到 -540~540
-    
+
                 EventLayers.ForEach(eventLayer =>
                 {
                     // X轴坐标转换
@@ -250,24 +249,14 @@ namespace RePhiEdit
         {
             public float GetValueAtTime(float t, List<RpeBpm> bpmList)
             {
-                Event previousEvent = null;
-
-                for (int i = 0; i < Count; i++)
+                var theEvent = this.FirstOrDefault(e =>
+                    t >= e.StartTime.CurTime(bpmList) && t <= e.EndTime.CurTime(bpmList));
+                if (theEvent != null)
                 {
-                    var theEvent = this[i];
-                    if (t >= theEvent.StartTime.CurTime(bpmList) && t <= theEvent.EndTime.CurTime(bpmList))
-                    {
-                        return theEvent.GetValueAtTime(t, bpmList);
-                    }
-
-                    if (t <= theEvent.StartTime.CurTime(bpmList))
-                    {
-                        break;
-                    }
-
-                    previousEvent = theEvent;
+                    return theEvent.GetValueAtTime(t, bpmList);
                 }
 
+                var previousEvent = this.LastOrDefault(e => t > e.EndTime.CurTime(bpmList));
                 return previousEvent?.End ?? 0;
             }
         }
@@ -358,12 +347,12 @@ namespace RePhiEdit
             [JsonProperty("end")] public new float[] End = { 0.0f, 0.0f, 0.0f }; // 结束颜色(RGB)
 
             // 覆写GetValue方法，返回三个颜色值
-            public new float[] GetValueAtBeat(float beat)
+            public new float[] GetValueAtTime(float time)
             {
                 float startBeat = StartTime.CurBeat;
                 float endBeat = EndTime.CurBeat;
                 //获得这个拍在这个事件的时间轴上的位置
-                float t = (beat - startBeat) / (endBeat - startBeat);
+                float t = (time - startBeat) / (endBeat - startBeat);
                 //获得当前拍的值
                 float easedBeat = Easing.Evaluate(EasingType, EasingLeft, EasingRight, t);
                 //插值，RGB三个颜色值
@@ -383,9 +372,9 @@ namespace RePhiEdit
             [JsonProperty("end")] public new string End = ""; // 结束文本
 
             // 覆写GetValue方法，返回抛出异常
-            public new string GetValueAtBeat(float t)
+            public new string GetValueAtTime(float t)
             {
-                throw new System.NotImplementedException();
+                throw new NotImplementedException();
             }
         }
 
@@ -406,10 +395,11 @@ namespace RePhiEdit
             public float FloorPosition = 0.0f;
         }
     }
-    
+
     public class BeatJsonConverter : JsonConverter<RpeClass.Beat>
     {
-        public override RpeClass.Beat ReadJson(JsonReader reader, Type objectType, RpeClass.Beat existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override RpeClass.Beat ReadJson(JsonReader reader, Type objectType, RpeClass.Beat existingValue,
+            bool hasExistingValue, JsonSerializer serializer)
         {
             JArray array = JArray.Load(reader);
             return new RpeClass.Beat(array.ToObject<int[]>());
@@ -422,6 +412,7 @@ namespace RePhiEdit
             {
                 writer.WriteValue(value[i]);
             }
+
             writer.WriteEndArray();
         }
     }
