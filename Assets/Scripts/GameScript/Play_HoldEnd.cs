@@ -1,10 +1,9 @@
-﻿using System;
-using Phigros_Fanmade;
+﻿using RePhiEdit;
 using UnityEngine;
 
 public class Play_HoldEnd : MonoBehaviour
 {
-    public Note note;
+    public RpeClass.Note note;
     public RectTransform noteRectTransform;
     public JudgeLineScript fatherJudgeLine;
     [HideInInspector]
@@ -17,7 +16,7 @@ public class Play_HoldEnd : MonoBehaviour
         noteRenderer = gameObject.GetComponent<Renderer>();
         
         noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
-        if (!note.Above)
+        if (note.Above == 2)
         {
             //翻转自身贴图
             noteRenderer.transform.Rotate(0, 0, 180);
@@ -29,13 +28,13 @@ public class Play_HoldEnd : MonoBehaviour
         if (hitEnd) return;
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
         float height = CalcHeight(
-            note.clickStartTime,
-            note.clickEndTime,
+            note.StartTime.CurTime(GameManager.BpmList),
+            note.EndTime.CurTime(GameManager.BpmList),
             GameManager.curTick);
         
         //计算Y位置
         float yPos = CalcYPos(height,GameManager.curTick);
-        noteRectTransform.anchoredPosition = new Vector2(note.X, yPos);
+        noteRectTransform.anchoredPosition = new Vector2(note.PositionX, yPos);
     }
     
     /// <summary>
@@ -45,7 +44,7 @@ public class Play_HoldEnd : MonoBehaviour
     /// <param name="clickEndTime">打击结束时间</param>
     /// <param name="currentTime">当前时间</param>
     /// <returns>Sprite Height</returns>
-    private float CalcHeight(double clickStartTime,double clickEndTime, double currentTime)
+    private float CalcHeight(double clickStartTime,float clickEndTime, float currentTime)
     {
         
         if (currentTime >= clickEndTime) 
@@ -56,12 +55,12 @@ public class Play_HoldEnd : MonoBehaviour
         //弃用原直接计算，使用floorPos进行计算。
         float clickStartFloorPosition = (float)
         (
-            fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(currentTime) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(currentTime,GameManager.BpmList) -
             note.FloorPosition
         );//* note.speedMultiplier;
         float clickEndFloorPosition = (float)
         (
-            fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(clickEndTime) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(clickEndTime,GameManager.BpmList) -
             note.FloorPosition
         );//* note.speedMultiplier;
         float spriteHeight = -clickEndFloorPosition - -clickStartFloorPosition;
@@ -71,19 +70,19 @@ public class Play_HoldEnd : MonoBehaviour
 
     }
     
-    private float CalcYPos(float spriteHeight,double lastTime)
+    private float CalcYPos(float spriteHeight,float curTime)
     {
         //double clickTime = note.clickEndTime - note.clickStartTime;
         //计算自己的相对位置，因为Sprite的原点在中心，所以要除以2，并加上hold头的高度再加上hold头的位置。
-        if (lastTime >= note.clickStartTime)
+        if (curTime >= note.StartTime.CurTime(GameManager.BpmList))
         {
-            return note.Above ? -spriteHeight : spriteHeight;
+            return note.Above == 1 ? -spriteHeight : spriteHeight;
         } 
         
-        double fp = fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(lastTime) - note.FloorPosition;
+        double fp = fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(curTime,GameManager.BpmList) - note.FloorPosition;
         //double newYPosition = fp * note.speedMultiplier - 12 + spriteHeight / 2;//- spriteHeight/2;
         double newYPosition = fp - 12 + spriteHeight;
         
-        return note.Above ? (float)-newYPosition : (float)newYPosition;
+        return note.Above == 1 ? (float)-newYPosition : (float)newYPosition;
     }
 }

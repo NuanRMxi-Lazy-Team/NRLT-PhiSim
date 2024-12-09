@@ -1,10 +1,11 @@
-﻿using Phigros_Fanmade;
+﻿using RePhiEdit;
 using UnityEngine;
+
 
 public class Play_HoldHead : MonoBehaviour
 {
     [HideInInspector]
-    public Note Note;
+    public RpeClass.Note Note;
     public RectTransform noteRectTransform;
     public JudgeLineScript fatherJudgeLine;
     public Play_GameManager gameManager;
@@ -20,7 +21,7 @@ public class Play_HoldHead : MonoBehaviour
         noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
 
         _canvas = GameObject.Find("Play Canvas");
-        if (!Note.Above)
+        if (Note.Above == 2)
         {
             //翻转自身贴图
             _noteRenderer.transform.Rotate(0, 0, 180);
@@ -32,9 +33,9 @@ public class Play_HoldHead : MonoBehaviour
 
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
         float yPos = CalculateYPosition(
-            Note.clickStartTime,
+            Note.StartTime.CurTime(gameManager.BpmList),
             gameManager.curTick);
-        noteRectTransform.anchoredPosition = new Vector2(Note.X,
+        noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,
             yPos);
     }
 
@@ -44,13 +45,13 @@ public class Play_HoldHead : MonoBehaviour
     /// <param name="targetTime">目标时间</param>
     /// <param name="lastTime">当前时间</param>
     /// <returns>垂直位置</returns>
-    private float CalculateYPosition(double targetTime, double lastTime)
+    private float CalculateYPosition(double targetTime, float lastTime)
     {
         if (targetTime <= lastTime)
         {
             
             //生成hitFx，恒定不旋转
-            var fxPos = fatherJudgeLine.CalcPositionXY(Note.clickStartTime,Note.X);
+            var fxPos = fatherJudgeLine.CalcPositionXY(Note.StartTime.CurTime(gameManager.BpmList),Note.PositionX);
             var hitFx = Instantiate(this.hitFx, new Vector3(fxPos.Item1,fxPos.Item2), Quaternion.identity);
             hitFx.hitAudioClip = hitClip;
             hitFx.gameManager = gameManager;
@@ -68,11 +69,11 @@ public class Play_HoldHead : MonoBehaviour
         //弃用原直接计算，使用floorPos进行计算。
         float newYPosition = (float)
         (
-            fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(lastTime) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime,gameManager.BpmList) -
             Note.FloorPosition
         );//* note.speedMultiplier;
         float spriteHeight = _noteRenderer.bounds.size.y;
-        if (Note.Above)
+        if (Note.Above == 1)
         {
             //翻转y坐标
             //获得自己的sprite高度

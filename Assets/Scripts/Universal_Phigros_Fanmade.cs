@@ -4,12 +4,15 @@ using System.IO;
 using System.IO.Compression;
 using SimpleJSON;
 using System;
+using System.Linq;
 using JetBrains.Annotations;
 using LogWriter;
 using LogType = LogWriter.LogType;
 using UnityEngine.Localization.Settings;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using RePhiEdit;
+using UnityEngine.Networking;
 
 namespace Phigros_Fanmade
 {
@@ -28,6 +31,41 @@ namespace Phigros_Fanmade
         {
             var originalTime = T / bpm * 1.875; //结果为秒
             return originalTime * 1000; //返回毫秒
+        }
+        
+        private static int[] ConvertToRpeTime(float t, float bpm)
+        {
+            // T = BPM/1.875f, 转换为拍数
+            float beats = t / 128.0f;
+    
+            // 获取整数部分
+            int wholePart = (int)beats;
+    
+            // 获取小数部分并转换为分数
+            float fractionalPart = beats - wholePart;
+            const int maxDenominator = 32; // 使用音乐常用的最大分母
+            int numerator = (int)Math.Round(fractionalPart * maxDenominator);
+            int denominator = maxDenominator;
+    
+            // 约分
+            int gcd = GCD(numerator, denominator);
+            numerator /= gcd;
+            denominator /= gcd;
+    
+            // 返回数组 [整数部分, 分子, 分母]
+            return new int[] { wholePart, numerator, denominator };
+        }
+
+        // 计算最大公约数的辅助方法
+        private static int GCD(int a, int b)
+        {
+            while (b != 0)
+            {
+                int temp = b;
+                b = a % b;
+                a = temp;
+            }
+            return a;
         }
 
         /// <summary>
@@ -72,34 +110,20 @@ namespace Phigros_Fanmade
         /// <param name="wavBytes"></param>
         /// <returns>此文件对应的AudioClip</returns>
         [CanBeNull]
-        private static AudioClip WavToAudioClip(byte[] wavBytes)
+        private static AudioClip LoadAudioClip(string filePath)
         {
-            try
+            using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + filePath, AudioType.WAV))
             {
-                // WAV文件的头部是44字节
-                int headerOffset = 44;
-                int sampleRate = BitConverter.ToInt32(wavBytes, 24);
-                int channels = BitConverter.ToInt16(wavBytes, 22);
-                int samples = (wavBytes.Length - headerOffset) / 2; // 16-bit stereo
-
-                AudioClip clip = AudioClip.Create("MySound", samples / channels, channels, sampleRate, false);
-                float[] data = new float[samples];
-
-                int offset = headerOffset; // WAV头部
-                for (int i = 0; i < samples; i++)
+                www.SendWebRequest();
+        
+                while (!www.isDone) { }
+        
+                if (www.result == UnityWebRequest.Result.Success)
                 {
-                    data[i] = (short)(wavBytes[offset] | wavBytes[offset + 1] << 8) / 32768.0F;
-                    offset += 2;
+                    return DownloadHandlerAudioClip.GetContent(www);
                 }
-
-                clip.SetData(data, 0);
-                return clip;
             }
-            catch (Exception ex)
-            {
-                Log.Write("WavToAudioClip error:" + ex, LogType.Error);
-                return null;
-            }
+            return null;
         }
 
         #endregion
@@ -134,66 +158,92 @@ namespace Phigros_Fanmade
 
         #endregion
 
-        //Type
-        public ChartType ChartType;
-
         //List
         public List<JudgeLine> JudgeLineList = new();
 
         //Data
-        public AudioClip Music;
-        public Sprite Illustration;
         public string RawChart;
+        private static AudioClip musicTemp;
+        private static Sprite illustrationTemp;
 
         #region 谱面转换区块
 
         [CanBeNull]
-        public static async Task<Chart> ChartConverter(byte[] fileData, string cacheFileDirectory, string FileExtension)
+        public static async Task<RpeChart> ChartConverter(byte[] fileData, string cacheFileDir, string fileExtension)
         {
+            
             //var table = LocalizationSettings.StringDatabase.GetTable("Languages");
             var chart = await Task.Run(() =>
             {
                 try
                 {
                     //在缓存文件夹下创建一个新的叫"ChartFileCache"的文件夹
-                    if (Directory.Exists(cacheFileDirectory))
+                    if (Directory.Exists(cacheFileDir))
                     {
-                        if (!Directory.Exists(cacheFileDirectory + "/ChartFileCache"))
+                        if (!Directory.Exists(cacheFileDir + "/ChartFileCache"))
                         {
-                            Directory.CreateDirectory(cacheFileDirectory + "/ChartFileCache");
+                            Directory.CreateDirectory(cacheFileDir + "/ChartFileCache");
                         }
                     }
 
-                    cacheFileDirectory += "/ChartFileCache";
+                    cacheFileDir += "/ChartFileCache";
                     //清空缓存文件夹
-                    DirectoryInfo di = new(cacheFileDirectory);
+                    DirectoryInfo di = new(cacheFileDir);
                     foreach (var file in di.GetFiles())
                     {
                         file.Delete();
                     }
 
                     //检查文件扩展名是否为.zip
-                    if (Path.GetExtension(FileExtension) != ".zip" && Path.GetExtension(FileExtension) != ".pez")
+                    if (Path.GetExtension(fileExtension) != ".zip" && Path.GetExtension(fileExtension) != ".pez")
                     {
                         Log.Write("The selected file format is not support", LogType.Error);
                         throw new Exception(); //(table.GetEntry("Chart_Format_Err").GetLocalizedString());
                     }
 
                     //将文件解压
-                    File.WriteAllBytes(cacheFileDirectory + "/ChartFileCache.zip", fileData);
-                    ZipFile.ExtractToDirectory(cacheFileDirectory + "/ChartFileCache.zip", cacheFileDirectory);
-
-                    //检查目录下是否含有config.json，如果有，读取到内存，否则返回null
-                    if (!File.Exists(cacheFileDirectory + "/config.json"))
+                    File.WriteAllBytes(cacheFileDir + "/ChartFileCache.zip", fileData);
+                    ZipFile.ExtractToDirectory(cacheFileDir + "/ChartFileCache.zip", cacheFileDir);
+                    
+                    // 查找目录中有多少个.json文件
+                    var jsonFiles = Directory.GetFiles(cacheFileDir, "*.json");
+                    // 如果啥也没有，抛出异常，因为既没有谱面也没有配置
+                    if (jsonFiles.Length == 0)
                     {
                         Log.Write("The selected file cannot be parsed into the config. json file", LogType.Error);
                         throw new Exception(); //(table.GetEntry("Chart_Config_Err").GetLocalizedString());
                     }
+                    string rawChart = "";
+                    // 如果大于一个json文件，选择名称不是config.json的文件直接作为谱面
+                    if (jsonFiles.Length > 1)
+                    {
+                        // 选取第一个名称不是config.json的文件
+                        foreach (var jsonFile in jsonFiles)
+                        {
+                            if (Path.GetFileName(jsonFile) != "config.json")
+                            {
+                                rawChart = File.ReadAllText(jsonFile);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 如果只有一个json文件，直接读取
+                        rawChart = File.ReadAllText(jsonFiles[0]);
+                    }
+                    // 寻找音乐文件，后缀为所有音频格式，如果找到多个，选择与谱面同名（不包含后缀）的音频文件
+                    var musicFile = Directory.GetFiles(cacheFileDir, "*.*", SearchOption.AllDirectories)
+                        .Where(s => s.EndsWith(".wav") || s.EndsWith(".mp3") || s.EndsWith(".ogg") || s.EndsWith(".flac"))
+                        .ToArray().First();
+                    // 寻找插图文件，后缀为所有图片格式，如果找到多个，选择与谱面同名（不包含后缀）的图片文件
+                    var illustrationFile = Directory.GetFiles(cacheFileDir, "*.*", SearchOption.AllDirectories)
+                        .Where(s => s.EndsWith(".png") || s.EndsWith(".jpg") || s.EndsWith(".jpeg") || s.EndsWith(".bmp"))
+                        .ToArray().First();
 
-                    JSONNode jsonConfig = JSON.Parse(File.ReadAllText(cacheFileDirectory + "/config.json"));
+                    var rpeChart = new RpeChart();
                     //检查是否含有三个必要字段，music，illustration和chart
-                    if (jsonConfig["music"] == null || jsonConfig["illustration"] == null ||
-                        jsonConfig["chart"] == null)
+                    if (musicFile == null || illustrationFile == null ||
+                        rawChart == null)
                     {
                         Log.Write("Unable to find illustrations, music, or chart files in the selected file",
                             LogType.Error);
@@ -202,49 +252,27 @@ namespace Phigros_Fanmade
 
                     //string missingFile = table.GetEntry("Chart_Format_Err").GetLocalizedString();
                     //检查参数中的文件都是否存在，若其中一个不存在，报错并返回null
-                    if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["music"]))
+                    if (!File.Exists(musicFile))
                     {
                         Log.Write("Load music is Failed");
                         throw new Exception(); //missingFile + "music");
                     }
 
-                    if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["illustration"]))
+                    if (!File.Exists(illustrationFile))
                     {
                         Log.Write("Load illustration is Failed");
                         throw new Exception(); //missingFile + "illustration");
                     }
-
-                    if (!File.Exists(cacheFileDirectory + "/" + jsonConfig["chart"]))
-                    {
-                        Log.Write("Load chart is Failed");
-                        throw new Exception(); //missingFile + "chart");
-                    }
-
-
+                    
                     //读取谱面
-                    Chart chart = new()
-                    {
-                        RawChart = File.ReadAllText(cacheFileDirectory + "/" + jsonConfig["chart"])
-                    };
-                    var jsonChart = JSON.Parse(chart.RawChart);
-
+                    var jsonChart = JSON.Parse(rawChart);
+                    
                     //载入音频和插图
                     Main_Button_Click.Enqueue(() =>
                     {
-                        chart.Music = WavToAudioClip(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["music"]));
-                        chart.Illustration =
-                            BytesToSprite(File.ReadAllBytes(cacheFileDirectory + "/" + jsonConfig["illustration"]));
-
-                        //检查音频是否载入成功
-                        try
-                        {
-                            double musicLength = chart.Music.length;
-                        }
-                        catch (NullReferenceException)
-                        {
-                            Log.Write("Load music is Failed", LogType.Error);
-                            throw;
-                        }
+                        musicTemp = LoadAudioClip(musicFile);
+                        illustrationTemp =
+                            BytesToSprite(File.ReadAllBytes(illustrationFile));
                     });
 
 
@@ -253,7 +281,7 @@ namespace Phigros_Fanmade
                     {
                         //第三代Phigros官谱
                         Log.Write("Chart Version is Official_V3");
-                        chart.ChartType = ChartType.OfficialV3;
+                        
 
                         //读取出所有判定线
                         var judgeLineList = jsonChart["judgeLineList"];
@@ -263,6 +291,17 @@ namespace Phigros_Fanmade
                         {
                             //读取当前线的BPM
                             float judgeLineBpm = judgeLineList[i]["bpm"];
+                            //RPE
+                            if (rpeChart.BpmList.Count == 0)
+                            {
+                                rpeChart.BpmList.Add(new RpeClass.RpeBpm
+                                {
+                                    Bpm = judgeLineBpm,
+                                    StartTime = new RpeClass.Beat()
+                                });
+                            }
+                            var rpeJudgeLine = new RpeClass.JudgeLine();
+                            var rpeEventLayer = new RpeClass.EventLayer();
                             //读取出所有事件
                             var judgeLineMoveEventList =
                                 judgeLineList[i]["judgeLineMoveEvents"]; //移动事件，官谱中，XY移动是绑定的
@@ -286,9 +325,12 @@ namespace Phigros_Fanmade
                                     ? 0 //超界，按0处理
                                     : OfficialV3_TimeConverter(judgeLineMoveEventList[j]["startTime"],
                                         judgeLineBpm); //转换T为毫秒
+                                var rpeStartBeat = ConvertToRpeTime(judgeLineMoveEventList[j]["startTime"], judgeLineBpm);
 
                                 var eventEndTime = OfficialV3_TimeConverter(judgeLineMoveEventList[j]["endTime"],
                                     judgeLineBpm);
+
+                                var rpeEndBeat = ConvertToRpeTime(judgeLineMoveEventList[j]["endTime"], judgeLineBpm);
 
                                 //转换与添加坐标系
                                 var eventXStartValue =
@@ -308,12 +350,28 @@ namespace Phigros_Fanmade
                                     startValue = eventXStartValue,
                                     endValue = eventXEndValue
                                 });
+                                // RPE
+                                rpeEventLayer.MoveXEvents.Add(new RpeClass.Event
+                                {
+                                    StartTime = new RpeClass.Beat(rpeStartBeat),
+                                    EndTime = new RpeClass.Beat(rpeEndBeat),
+                                    Start = eventXStartValue,
+                                    End = eventXEndValue
+                                });
                                 judgeLine.yMoveList.Add(new Events.Event
                                 {
                                     startTime = eventStartTime,
                                     endTime = eventEndTime,
                                     startValue = eventYStartValue,
                                     endValue = eventYEndValue
+                                });
+                                // RPE
+                                rpeEventLayer.MoveYEvents.Add(new RpeClass.Event
+                                {
+                                    StartTime = new RpeClass.Beat(rpeStartBeat),
+                                    EndTime = new RpeClass.Beat(rpeEndBeat),
+                                    Start = eventYStartValue,
+                                    End = eventYEndValue
                                 });
                             }
 
@@ -326,9 +384,14 @@ namespace Phigros_Fanmade
                                     ? 0 //超界，按0处理
                                     : OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["startTime"],
                                         judgeLineBpm); //转换T为毫秒
+                                // RPE
+                                var rpeStartBeat = ConvertToRpeTime(judgeLineAngleChangeEventList[j]["startTime"], judgeLineBpm);
 
                                 var eventEndTime = OfficialV3_TimeConverter(judgeLineAngleChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒
+                                
+                                // RPE
+                                var rpeEndBeat = ConvertToRpeTime(judgeLineAngleChangeEventList[j]["endTime"], judgeLineBpm);
 
                                 //添加数值到列表
                                 judgeLine.angleChangeList.Add(new Events.Event
@@ -337,6 +400,15 @@ namespace Phigros_Fanmade
                                     endTime = eventEndTime,
                                     startValue = judgeLineAngleChangeEventList[j]["start"],
                                     endValue = judgeLineAngleChangeEventList[j]["end"]
+                                });
+                                
+                                // RPE
+                                rpeEventLayer.RotateEvents.Add(new RpeClass.Event
+                                {
+                                    StartTime = new RpeClass.Beat(rpeStartBeat),
+                                    EndTime = new RpeClass.Beat(rpeEndBeat),
+                                    Start = judgeLineAngleChangeEventList[j]["start"],
+                                    End = judgeLineAngleChangeEventList[j]["end"]
                                 });
                             }
 
@@ -348,9 +420,15 @@ namespace Phigros_Fanmade
                                     ? 0 //超界，按0处理
                                     : OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["startTime"],
                                         judgeLineBpm); //转换T为毫秒
+                                
+                                // RPE
+                                var rpeStartBeat = ConvertToRpeTime(judgeLineAlphaChangeEventList[j]["startTime"], judgeLineBpm);
 
                                 var eventEndTime = OfficialV3_TimeConverter(judgeLineAlphaChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒 
+                                
+                                // RPE
+                                var rpeEndBeat = ConvertToRpeTime(judgeLineAlphaChangeEventList[j]["endTime"], judgeLineBpm);
 
                                 //添加数值到列表
                                 judgeLine.alphaChangeList.Add(new Events.Event
@@ -359,6 +437,15 @@ namespace Phigros_Fanmade
                                     endTime = eventEndTime,
                                     startValue = judgeLineAlphaChangeEventList[j]["start"],
                                     endValue = judgeLineAlphaChangeEventList[j]["end"]
+                                });
+                                
+                                // RPE，官谱中1为完全不透明，0为完全透明，在RPE中，255为完全不透明，0为完全透明，确保转换并丢弃小数点
+                                rpeEventLayer.AlphaEvents.Add(new RpeClass.Event
+                                {
+                                    StartTime = new RpeClass.Beat(rpeStartBeat),
+                                    EndTime = new RpeClass.Beat(rpeEndBeat),
+                                    Start = judgeLineAlphaChangeEventList[j]["start"],
+                                    End = judgeLineAlphaChangeEventList[j]["end"]
                                 });
                             }
 
@@ -370,10 +457,14 @@ namespace Phigros_Fanmade
                                     ? 0 //超界，按0处理
                                     : OfficialV3_TimeConverter(judgeLineSpeedChangeEventList[j]["startTime"],
                                         judgeLineBpm); //转换T为毫秒 
+                                // RPE
+                                var rpeStartBeat = ConvertToRpeTime(judgeLineSpeedChangeEventList[j]["startTime"], judgeLineBpm);
 
                                 double eventEndTime = OfficialV3_TimeConverter(
                                     judgeLineSpeedChangeEventList[j]["endTime"],
                                     judgeLineBpm); //转换T为毫秒 
+                                // RPE
+                                var rpeEndBeat = ConvertToRpeTime(judgeLineSpeedChangeEventList[j]["endTime"], judgeLineBpm);
 
                                 //添加到列表
                                 judgeLine.speedChangeList.Add(new Events.SpeedEvent
@@ -383,9 +474,18 @@ namespace Phigros_Fanmade
                                     startValue = judgeLineSpeedChangeEventList[j]["value"] / 1.5f,
                                     endValue = judgeLineSpeedChangeEventList[j]["value"] / 1.5f //官谱速度无任何缓动，只有关键帧
                                 });
+                                // RPE
+                                rpeEventLayer.SpeedEvents.Add(new RpeClass.SpeedEvent
+                                {
+                                    StartTime = new RpeClass.Beat(rpeStartBeat),
+                                    EndTime = new RpeClass.Beat(rpeEndBeat),
+                                    Start = judgeLineSpeedChangeEventList[j]["value"] * RpeSpeedToOfficial,
+                                    End = judgeLineSpeedChangeEventList[j]["value"] * RpeSpeedToOfficial
+                                });
                             }
 
                             judgeLine.speedChangeList.CalcFloorPosition();
+                            rpeJudgeLine.EventLayers.Add(rpeEventLayer);
 
 
                             bool setAbove = true;
@@ -425,10 +525,14 @@ namespace Phigros_Fanmade
                                 //打击时刻转换
                                 double noteClickStartTime =
                                     OfficialV3_TimeConverter(noteList[j]["time"], judgeLineBpm);
+                                // RPE
+                                var rpeClickBeat = ConvertToRpeTime(noteList[j]["time"], judgeLineBpm);
                                 double noteClickEndTime = noteType == Note.NoteType.Hold
                                     ? OfficialV3_TimeConverter(noteList[j]["holdTime"], judgeLineBpm) +
                                       noteClickStartTime
                                     : noteClickStartTime;
+                                // RPE
+                                var rpeEndBeat = ConvertToRpeTime((int)noteList[j]["time"] + (int)noteList[j]["holdTime"], judgeLineBpm);
 
                                 //添加Note
                                 judgeLine.noteList.Add(new Note
@@ -444,8 +548,24 @@ namespace Phigros_Fanmade
                                         judgeLine.speedChangeList.GetCurTimeSu(noteClickStartTime), //这是临时修改。
                                     //floorPosition = float.Parse(noteList[j]["floorPosition"].ToString()) * 100f
                                 });
-                                //Log.Write("this note FP:" + Note.GetCurTimeSu(noteClickStartTime, judgeLine.speedChangeList)+"\norigin FP:"
-                                //    + noteList[j]["floorPosition"],LogType.Debug);
+                                // RPE，与官谱不同，note类型，1 为 Tap、2 为 Hold、3 为 Flick、4 为 Drag
+                                int rpeNoteType = noteType switch
+                                {
+                                    Note.NoteType.Tap => 1,
+                                    Note.NoteType.Hold => 2,
+                                    Note.NoteType.Flick => 3,
+                                    Note.NoteType.Drag => 4
+                                };
+                                rpeJudgeLine.Notes.Add(new RpeClass.Note
+                                {
+                                    Type = rpeNoteType,
+                                    StartTime = new RpeClass.Beat(rpeClickBeat),
+                                    EndTime = new RpeClass.Beat(rpeEndBeat),
+                                    PositionX = (float)noteList[j]["positionX"] * 108f,
+                                    SpeedMultiplier = noteList[j]["speed"],
+                                    Above = setAbove ? 1 : 0,
+                                    FloorPosition = rpeJudgeLine.EventLayers.GetCurFloorPosition(new RpeClass.Beat(rpeClickBeat).CurTime(rpeChart.BpmList),rpeChart.BpmList)
+                                });
                             }
 
                             if (setAbove)
@@ -455,31 +575,48 @@ namespace Phigros_Fanmade
                             }
 
                             //添加判定线
-                            chart.JudgeLineList.Add(judgeLine);
+                            //chart.JudgeLineList.Add(judgeLine);
+                            rpeChart.JudgeLineList.Add(rpeJudgeLine);
                         }
 
-                        return chart;
+                        return rpeChart;
                     }
                     else if (jsonChart["formatVersion"] == 1)
                     {
                         //第一代Phigros官谱
                         Log.Write("Chart Version is OfficialV1");
-                        chart.ChartType = ChartType.OfficialV1;
                         throw new NotSupportedException("this version is not supported");
                     }
                     else if (jsonChart["META"] != "" || jsonChart["META"] != null)
                     {
                         //RPE谱面
-                        Log.Write("Chart Version is RePhiEdi, but this chart is not supported.");
-                        chart.ChartType = ChartType.RePhiEdit;
-                        throw new NotSupportedException("this version is not supported");
+                        rpeChart = JsonConvert.DeserializeObject<RpeChart>(rawChart);
+                        foreach (var judgeLine in rpeChart.JudgeLineList)
+                        {
+                            judgeLine.CoordinateTransformer();
+                            foreach (var eventLayer in judgeLine.EventLayers)
+                            {
+                                eventLayer.SpeedEvents.CalcFloorPosition(rpeChart.BpmList);
+                            }
+
+                            foreach (var note in judgeLine.Notes)
+                            {
+                                note.FloorPosition =
+                                    judgeLine.EventLayers.GetCurFloorPosition(note.StartTime.CurTime(rpeChart.BpmList),rpeChart.BpmList);
+                            }
+                        }
+                        
+                        rpeChart.Music = musicTemp;
+                        rpeChart.Illustration = illustrationTemp;
+                        return rpeChart;
+                        //Log.Write("Chart Version is RePhiEdi, but this chart is not supported.");
+                        //throw new NotSupportedException("this version is not supported");
                     }
                     else
                     {
                         //未知的或不支持的文件
                         Log.Write(
                             " The format of this chart may be PhiEdit, but it is not supported and will not be supported in the future");
-                        chart.ChartType = ChartType.PhiEdit;
                         throw new NotSupportedException("this version is not supported");
                     }
                 }

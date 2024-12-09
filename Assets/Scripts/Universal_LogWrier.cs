@@ -53,7 +53,7 @@ namespace LogWriter
             {
                 case LogType.Debug:
                     Debug.Log(message);
-                    if (ChartCache.Instance.debugMode == true)
+                    if (PlayerPrefs.GetInt("debugMode") == 1)
                     {
                         now = now + nowTime + " Debug:" + message + "\n";
                     }

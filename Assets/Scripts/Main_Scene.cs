@@ -19,8 +19,6 @@ public class Main_Button_Click : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        ChartCache.Instance.debugMode = false;
-        
         #region 权限相关
 #if UNITY_EDITOR_WIN
         Log.Write("Start On UNITY_EDITOR.", LogType.Debug);

@@ -1,13 +1,14 @@
 using System.Collections;
 using System;
 using Phigros_Fanmade;
+using RePhiEdit;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 public class Play_Note : MonoBehaviour
 {
     //获取初始参数
-    public Note note;
+    public RpeClass.Note note;
     public RectTransform noteRectTransform;
     public JudgeLineScript fatherJudgeLine;
     public Play_GameManager GameManager;
@@ -25,7 +26,7 @@ public class Play_Note : MonoBehaviour
         noteRenderer = gameObject.GetComponent<Renderer>();
         noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
         _canvas = GameObject.Find("Play Canvas");
-        if (!note.Above)
+        if (note.Above == 2)
         {
             //翻转自身贴图
             noteRenderer.transform.Rotate(0, 0, 180);
@@ -37,9 +38,9 @@ public class Play_Note : MonoBehaviour
     {
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
         float yPos = CalculateYPosition(
-            note.clickStartTime,
+            note.StartTime.CurTime(GameManager.BpmList),
             GameManager.curTick);
-        noteRectTransform.anchoredPosition = new Vector2(note.X,
+        noteRectTransform.anchoredPosition = new Vector2(note.PositionX,
             yPos);
     }
 
@@ -50,12 +51,12 @@ public class Play_Note : MonoBehaviour
     /// <param name="targetTime">目标时间</param>
     /// <param name="lastTime">当前时间</param>
     /// <returns>垂直位置</returns>
-    private float CalculateYPosition(double targetTime, double lastTime)
+    private float CalculateYPosition(double targetTime, float lastTime)
     {
         if (lastTime >= targetTime)
         {
             //生成hitFx，恒定不旋转
-            var fxPos = fatherJudgeLine.CalcPositionXY(note.clickStartTime, note.X);
+            var fxPos = fatherJudgeLine.CalcPositionXY(note.StartTime.CurTime(GameManager.BpmList), note.PositionX);
             var hitFx = Instantiate(HitFx, new Vector3(), Quaternion.identity);
             hitFx.gameManager = GameManager;
             hitFx.hitAudioClip = HitClip;
@@ -72,19 +73,19 @@ public class Play_Note : MonoBehaviour
         //弃用原直接计算，使用floorPos进行计算。
         float newYPosition = (float)
         (
-            fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(lastTime) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime,GameManager.BpmList) -
             note.FloorPosition
         ) * note.SpeedMultiplier;
-        if (note.Above)
+        if (note.Above == 1)
         {
             //翻转y坐标
             newYPosition = -newYPosition;
         }
 
-        if (lastTime <= note.clickEndTime  && lastTime >= targetTime)
+        if (lastTime <= note.EndTime.CurTime(GameManager.BpmList)  && lastTime >= targetTime)
         {
             newYPosition = -1200f;
-            if (note.Above)
+            if (note.Above == 1)
             {
                 //翻转y坐标
                 newYPosition = 1200f;

@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using LogType = LogWriter.LogType;
 using Phigros_Fanmade;
+using RePhiEdit;
 using TMPro;
 #if UNITY_ANDROID && !UNITY_EDITOR_WIN
 using E7.Native;
@@ -29,9 +30,12 @@ public class Play_GameManager : MonoBehaviour
     //Tick
     [HideInInspector]
     public float curTick = 0f;
+    //BPM List
+    [HideInInspector]
+    public List<RpeClass.RpeBpm> BpmList;
 
     public TMP_Text Time;
-    //时间
+    
     
     //背景插画
     public GameObject Illistration;
@@ -170,7 +174,7 @@ public class Play_GameManager : MonoBehaviour
         {
             // 生成判定线实例，设置父对象为画布
             GameObject instance = Instantiate(JudgeLine, canvas.transform);
-            
+            BpmList = chart.BpmList;
             // 设置判定线位置到画布顶端且为不可视区域
             instance.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 1000);
             // 获取预制件的脚本组件
@@ -181,26 +185,27 @@ public class Play_GameManager : MonoBehaviour
             script.GameManager = this;
             
             //生成note实例
-            List<Note> holdList = new();
-            foreach (var note in chart.JudgeLineList[i].noteList)
+            List<RpeClass.Note> holdList = new();
+            foreach (var note in chart.JudgeLineList[i].Notes)
             {
                 GameObject noteGameObject;
                 switch (note.Type)
                 {
-                    case Note.NoteType.Tap:
+                    // note类型，1 为 Tap、2 为 Hold、3 为 Flick、4 为 Drag
+                    case 1:
                         noteGameObject = Instantiate(TapNote);
                         noteGameObject.GetComponent<Play_Note>().HitClip = tapAudioClip;
                         break;
-                    case Note.NoteType.Hold:
+                    case 2:
                         //noteGameObject = Instantiate(HoldNote);
                         //noteGameObject.GetComponent<Play_Note>().HitClip = tapAudioClip;
                         holdList.Add(note);
                         goto next;
-                    case Note.NoteType.Drag:
+                    case 4:
                         noteGameObject = Instantiate(DragNote);
                         noteGameObject.GetComponent<Play_Note>().HitClip = dragAudioClip;
                         break;
-                    case Note.NoteType.Flick:
+                    case 3:
                         noteGameObject = Instantiate(FlickNote);
                         noteGameObject.GetComponent<Play_Note>().HitClip = flickAudioClip;
                         break;

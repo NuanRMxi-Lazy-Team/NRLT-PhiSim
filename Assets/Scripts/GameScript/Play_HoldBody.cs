@@ -1,11 +1,12 @@
 ﻿using System;
 using Phigros_Fanmade;
+using RePhiEdit;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 public class Play_HoldBody : MonoBehaviour
 {
-    [HideInInspector] public Note Note;
+    [HideInInspector] public RpeClass.Note Note;
     [HideInInspector] public JudgeLineScript fatherJudgeLine;
     [HideInInspector] public Play_GameManager gameManager;
     
@@ -18,7 +19,7 @@ public class Play_HoldBody : MonoBehaviour
         _spriteRenderer = gameObject.GetComponent<SpriteRenderer>();
         
         noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
-        if (!Note.Above)
+        if (Note.Above == 2)
         {
             //翻转自身贴图
             _noteRenderer.transform.Rotate(0, 0, 180);
@@ -35,7 +36,7 @@ public class Play_HoldBody : MonoBehaviour
         
         //计算Y位置
         float yPos = CalcYPos(height);
-        noteRectTransform.anchoredPosition = new Vector2(Note.X, yPos);
+        noteRectTransform.anchoredPosition = new Vector2(Note.PositionX, yPos);
     }
     
     /// <summary>
@@ -44,7 +45,7 @@ public class Play_HoldBody : MonoBehaviour
     /// <returns>Sprite Height</returns>
     private float CalcHeight()
     {
-        if (gameManager.curTick >= Note.clickEndTime)
+        if (gameManager.curTick >= Note.EndTime.CurTime(gameManager.BpmList))
         {
             //摧毁自己
             Destroy(gameObject);
@@ -54,12 +55,12 @@ public class Play_HoldBody : MonoBehaviour
         //弃用原直接计算，使用floorPos进行计算。
         var clickStartFloorPosition = (float)
         (
-            fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(gameManager.curTick) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(gameManager.curTick,gameManager.BpmList) -
             Note.FloorPosition
         );//* note.speedMultiplier;
         var clickEndFloorPosition = (float)
         (
-            fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(Note.clickEndTime) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(Note.EndTime.CurTime(gameManager.BpmList),gameManager.BpmList) -
             Note.FloorPosition
         );//* note.speedMultiplier;
         
@@ -70,12 +71,12 @@ public class Play_HoldBody : MonoBehaviour
     private float CalcYPos(float spriteHeight)
     {
         //计算自己的相对位置，因为Sprite的原点在中心，所以要除以2，并加上hold头的高度再加上hold头的位置。
-        if (gameManager.curTick >= Note.clickStartTime)
+        if (gameManager.curTick >= Note.StartTime.CurTime(gameManager.BpmList))
         {
-            return Note.Above ? -spriteHeight / 2 : spriteHeight / 2;
+            return Note.Above == 1 ? -spriteHeight / 2 : spriteHeight / 2;
         }
-        var fp = fatherJudgeLine.judgeLine.speedChangeList.GetCurTimeSu(gameManager.curTick) - Note.FloorPosition;
+        var fp = fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(gameManager.curTick,gameManager.BpmList) - Note.FloorPosition;
         var newYPosition = fp - 12 + spriteHeight / 2;
-        return Note.Above ? (float)-newYPosition : (float)newYPosition;
+        return Note.Above == 1 ? (float)-newYPosition : (float)newYPosition;
     }
 }

@@ -55,6 +55,14 @@ MonoBehaviour:
     m_Key: Main_Setting_Button
     m_Metadata:
       m_Items: []
+  - m_Id: 70986513549860864
+    m_Key: Setting_DebugMode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 70987426343657472
+    m_Key: Setting_Save
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

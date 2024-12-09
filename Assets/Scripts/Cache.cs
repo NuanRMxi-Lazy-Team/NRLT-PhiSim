@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Phigros_Fanmade;
 using UnityEngine;
+using RePhiEdit;
 
 public class ChartCache : MonoBehaviour
 {
@@ -35,16 +36,9 @@ public class ChartCache : MonoBehaviour
     // 私有字段用于存储值
     private bool _debugMode;
     private MoveMode _moveMode;
-    private Chart _chart;
+    private RpeChart _chart;
     private List<Sprite> _hitFxs;
     private int _lastSceneIndex = -1;
-    
-    // 公共属性用于访问和设置值
-    public bool debugMode
-    {
-        get => _debugMode; 
-        set => _debugMode = value; 
-    }
     
     public MoveMode moveMode
     {
@@ -52,7 +46,7 @@ public class ChartCache : MonoBehaviour
         set => _moveMode = value;
     }
     
-    public Chart chart
+    public RpeChart chart
     {
         get  => _chart; 
         set  => _chart = value; 
