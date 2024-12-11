@@ -14,9 +14,6 @@ public class Play_Note : MonoBehaviour
     public Play_GameManager GameManager;
     public HitFx HitFx;
     
-    
-    [FormerlySerializedAs("tapHitClip")] 
-    public AudioClip HitClip;
     private Renderer noteRenderer;
     private GameObject _canvas;
 
@@ -55,14 +52,17 @@ public class Play_Note : MonoBehaviour
     {
         if (lastTime >= targetTime)
         {
-            //生成hitFx，恒定不旋转
-            var fxPos = fatherJudgeLine.CalcPositionXY(note.StartTime.CurTime(GameManager.BpmList), note.PositionX);
-            var hitFx = Instantiate(HitFx, new Vector3(), Quaternion.identity);
-            hitFx.gameManager = GameManager;
-            hitFx.hitAudioClip = HitClip;
-            //设置父对象为Canvas
-            hitFx.transform.SetParent(_canvas.transform);
-            hitFx.rectTransform.anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
+            if (note.IsFake == 0)
+            {
+                //生成hitFx，恒定不旋转
+                var fxPos = fatherJudgeLine.CalcPositionXY(note.StartTime.CurTime(GameManager.BpmList), note.PositionX);
+                var hitFx = Instantiate(HitFx, new Vector3(), Quaternion.identity);
+                hitFx.gameManager = GameManager;
+                hitFx.hitType = note.Type;
+                //设置父对象为Canvas
+                hitFx.transform.SetParent(_canvas.transform);
+                hitFx.rectTransform.anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
+            }
             //摧毁
             Destroy(gameObject);
             return 0;
@@ -71,16 +71,13 @@ public class Play_Note : MonoBehaviour
         // 根据速度（像素/秒）计算y坐标
         //float yPosition = (float)(speed * (note.clickStartTime / 1000 - elapsedTime) * 648 * note.speedMultiplier); // 这里加入了速度单位648像素/秒，648是1080 * 0.6
         //弃用原直接计算，使用floorPos进行计算。
-        float newYPosition = (float)
+        float newYPosition =
         (
             fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime,GameManager.BpmList) -
             note.FloorPosition
         ) * note.SpeedMultiplier;
-        if (note.Above == 1)
-        {
-            //翻转y坐标
-            newYPosition = -newYPosition;
-        }
+        
+        newYPosition = note.Above == 1 ? -newYPosition : newYPosition;
 
         if (lastTime <= note.EndTime.CurTime(GameManager.BpmList)  && lastTime >= targetTime)
         {

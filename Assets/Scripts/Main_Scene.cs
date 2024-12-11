@@ -20,9 +20,9 @@ public class Main_Button_Click : MonoBehaviour
     void Start()
     {
         #region 权限相关
-#if UNITY_EDITOR_WIN
+#if !UNITY_EDITOR_WIN
         Log.Write("Start On UNITY_EDITOR.", LogType.Debug);
-#elif UNITY_ANDROID
+#elif !UNITY_ANDROID
         Log.Write("Start On UNITY_ANDROID.", LogType.Debug);
         //获取权限
         Apply_for_read_permission:
@@ -41,6 +41,8 @@ public class Main_Button_Click : MonoBehaviour
             goto Apply_for_write_permission;
         }
         Log.Write("已获取写权限", LogType.Debug);
+        //Application.OpenURL("package:" + Application.identifier);
+        //弹出Toast
         ShowToast(LocalizationSettings.StringDatabase.GetLocalizedString("Languages", "Android_Permission_Prompt"));
 
 #elif UNITY_STANDALONE_WIN

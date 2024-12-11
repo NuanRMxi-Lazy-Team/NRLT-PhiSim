@@ -9,7 +9,6 @@ public class Play_HoldHead : MonoBehaviour
     public RectTransform noteRectTransform;
     public JudgeLineScript fatherJudgeLine;
     public Play_GameManager gameManager;
-    public AudioClip hitClip;
     public HitFx hitFx;
     
     private Renderer _noteRenderer;
@@ -49,16 +48,17 @@ public class Play_HoldHead : MonoBehaviour
     {
         if (targetTime <= lastTime)
         {
-            
-            //生成hitFx，恒定不旋转
-            var fxPos = fatherJudgeLine.CalcPositionXY(Note.StartTime.CurTime(gameManager.BpmList),Note.PositionX);
-            var hitFx = Instantiate(this.hitFx, new Vector3(fxPos.Item1,fxPos.Item2), Quaternion.identity);
-            hitFx.hitAudioClip = hitClip;
-            hitFx.gameManager = gameManager;
-            //设置父对象为Canvas
-            hitFx.transform.SetParent(_canvas.transform);
-            hitFx.rectTransform.anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
-            
+            if (Note.IsFake == 0)
+            {
+                //生成hitFx，恒定不旋转
+                var fxPos = fatherJudgeLine.CalcPositionXY(Note.StartTime.CurTime(gameManager.BpmList),Note.PositionX);
+                var hitFx = Instantiate(this.hitFx, new Vector3(fxPos.Item1,fxPos.Item2), Quaternion.identity);
+                hitFx.hitType = Note.Type;
+                hitFx.gameManager = gameManager;
+                //设置父对象为Canvas
+                hitFx.transform.SetParent(_canvas.transform);
+                hitFx.rectTransform.anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
+            }
             //摧毁
             Destroy(gameObject);
             return 0;

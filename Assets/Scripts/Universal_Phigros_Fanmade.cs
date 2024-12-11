@@ -3,7 +3,9 @@ using System.IO;
 using System.IO.Compression;
 using SimpleJSON;
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using JetBrains.Annotations;
 using LogWriter;
 using LogType = LogWriter.LogType;
@@ -12,6 +14,8 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using RePhiEdit;
 using UnityEngine.Networking;
+using Debug = UnityEngine.Debug;
+
 
 namespace Phigros_Fanmade
 {
@@ -31,7 +35,7 @@ namespace Phigros_Fanmade
             var originalTime = T / bpm * 1.875; //结果为秒
             return originalTime * 1000; //返回毫秒
         }
-        
+
         private static int[] ConvertToRpeTime(int beat128)
         {
             int[] result = new int[3];
@@ -77,30 +81,114 @@ namespace Phigros_Fanmade
         }
 
         #region 音频部分
+        private static AudioClip ConvertWavToAudioClip(byte[] wavData)
+        {
+            // 解析 WAV 文件头部信息
+            int channelCount = BitConverter.ToInt16(wavData, 22);
+            int sampleRate = BitConverter.ToInt32(wavData, 24);
+            int bitsPerSample = BitConverter.ToInt16(wavData, 34);
+            int dataChunkOffset = FindDataChunkOffset(wavData);
+            int dataSize = BitConverter.ToInt32(wavData, dataChunkOffset - 4);
+
+            int headerSize = dataChunkOffset + 4;
+            int sampleCount = dataSize / (bitsPerSample / 8);
+
+            float[] audioData = new float[sampleCount];
+
+            // 将音频数据转换为浮点数
+            int index = headerSize;
+            int i = 0;
+            while (index < wavData.Length)
+            {
+                short sample = BitConverter.ToInt16(wavData, index);
+                audioData[i] = sample / 32768f;
+                index += bitsPerSample / 8;
+                i++;
+            }
+
+            // 创建 AudioClip 并填充数据
+            AudioClip audioClip = AudioClip.Create("ConvertedAudio", sampleCount, channelCount, sampleRate, false);
+            audioClip.SetData(audioData, 0);
+
+            return audioClip;
+        }
+
+        private static int FindDataChunkOffset(byte[] wavData)
+        {
+            // WAV 文件头部一般为44个字节，但有时包含额外的块，需要遍历找到 "data" 块
+            int offset = 12;
+            while (offset < wavData.Length)
+            {
+                string chunkID = System.Text.Encoding.ASCII.GetString(wavData, offset, 4);
+                int chunkSize = BitConverter.ToInt32(wavData, offset + 4);
+                if (chunkID == "data")
+                {
+                    return offset + 8;
+                }
+                offset += 8 + chunkSize;
+            }
+            throw new Exception("未找到数据块");
+        }
 
         /// <summary>
-        /// wav音频文件转AudioClip
+        /// 音频文件转AudioClip
         /// </summary>
         /// <param name="filePath">文件路径</param>
         /// <returns>此文件对应的AudioClip</returns>
         [CanBeNull]
         private static AudioClip LoadAudioClip(string filePath)
         {
-            using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + filePath, AudioType.WAV))
+            string outputFilePath = Path.GetDirectoryName(filePath) + "/output.wav";
+
+#if !UNITY_EDITOR_WIN && UNITY_ANDROID
+            outputFilePath = Path.Combine(Application.persistentDataPath, "output.wav");
+            string arguments = $"-i \"{filePath}\" -y -nostdin \"{outputFilePath}\""; // 输入文件和输出文件路径，确保路径中包含空格时使用引号
+
+            AndroidJavaClass configClass = new AndroidJavaClass("com.arthenica.ffmpegkit.FFmpegKitConfig");
+            AndroidJavaObject paramVal =
+                new AndroidJavaClass("com.arthenica.ffmpegkit.Signal").GetStatic<AndroidJavaObject>("SIGXCPU");
+            configClass.CallStatic("ignoreSignal", new object[] { paramVal });
+
+            AndroidJavaClass javaClass = new AndroidJavaClass("com.arthenica.ffmpegkit.FFmpegKit");
+            AndroidJavaObject session = javaClass.CallStatic<AndroidJavaObject>("execute", new object[] { arguments });
+
+            AndroidJavaObject returnCode = session.Call<AndroidJavaObject>("getReturnCode", new object[] { });
+            int rc = returnCode.Call<int>("getValue", new object[] { });
+            // 检查返回值
+            if (rc != 0)
             {
-                www.SendWebRequest();
-
-                while (!www.isDone)
-                {
-                }
-
-                if (www.result == UnityWebRequest.Result.Success)
-                {
-                    return DownloadHandlerAudioClip.GetContent(www);
-                }
+                Debug.LogError("FFmpeg error: " + rc);
+                return null;
             }
+#else
+            // 获取内置的 ffmpeg.exe 路径
+            string ffmpegPath = Application.dataPath + "/Plugins/Windows/ffmpeg.exe"; // 使用 Assets/Plugins/Windows 目录
 
-            return null;
+            // 构建 FFmpeg 命令行参数
+            string arguments = $"-i \"{filePath}\" -y -nostdin \"{outputFilePath}\""; // 输入文件和输出文件路径，确保路径中包含空格时使用引号
+
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = ffmpegPath, // 指定 FFmpeg 可执行文件路径
+                Arguments = arguments, // 指定命令行参数
+                CreateNoWindow = true, // 不显示命令行窗口
+                UseShellExecute = false, // 不使用系统外壳执行
+            };
+
+            Process process = new Process
+            {
+                StartInfo = startInfo
+            };
+
+
+            // 启动进程
+            process.Start();
+
+            // 等待进程结束
+            process.WaitForExit();
+#endif
+            var wavBytes = File.ReadAllBytes(outputFilePath);
+            return ConvertWavToAudioClip(wavBytes);
         }
 
         #endregion
@@ -115,7 +203,7 @@ namespace Phigros_Fanmade
             {
                 // 插画预处理
                 RenderTexture rt = RenderTexture.GetTemporary(texture.width, texture.height);
-                Graphics.Blit(texture, rt, new Material(Shader.Find("Custom/GaussianBlurWithBrightness")));
+                Graphics.Blit(texture, rt, new Material(Shader.Find("Custom/GaussianBlur")));
                 RenderTexture.active = rt;
                 Texture2D blurredTexture = new(texture.width, texture.height);
                 blurredTexture.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
@@ -194,7 +282,8 @@ namespace Phigros_Fanmade
                         // 选取第一个名称不是config.json的文件
                         foreach (var jsonFile in jsonFiles)
                         {
-                            if (Path.GetFileName(jsonFile) != "config.json")
+                            if (Path.GetFileName(jsonFile) != "config.json" &&
+                                Path.GetFileName(jsonFile) != "extra.json")
                             {
                                 rawChart = File.ReadAllText(jsonFile);
                             }
@@ -390,6 +479,7 @@ namespace Phigros_Fanmade
                                     End = judgeLineSpeedChangeEventList[j]["value"] * RpeSpeedToOfficial
                                 });
                             }
+
                             rpeEventLayer.SpeedEvents.CalcFloorPosition(rpeChart.BpmList);
                             rpeJudgeLine.EventLayers.Add(rpeEventLayer);
 
@@ -473,7 +563,7 @@ namespace Phigros_Fanmade
                             judgeLine.CoordinateTransformer();
                             foreach (var eventLayer in judgeLine.EventLayers)
                             {
-                                eventLayer.SpeedEvents.CalcFloorPosition(rpeChart.BpmList);
+                                eventLayer?.SpeedEvents?.CalcFloorPosition(rpeChart.BpmList);
                             }
 
                             foreach (var note in judgeLine.Notes)

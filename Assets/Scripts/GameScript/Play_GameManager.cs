@@ -1,14 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using E7.Native;
 using LogWriter;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using LogType = LogWriter.LogType;
-using Phigros_Fanmade;
 using RePhiEdit;
 using TMPro;
 #if UNITY_ANDROID && !UNITY_EDITOR_WIN
@@ -26,6 +23,11 @@ public class Play_GameManager : MonoBehaviour
     public GameObject HoldHead;
     public GameObject HoldBody;
     public GameObject HoldEnd;
+    
+    // AudioClips
+    public AudioClip tapAudioClip;
+    public AudioClip dragAudioClip;
+    public AudioClip flickAudioClip;
     
     //Tick
     [HideInInspector]
@@ -85,28 +87,37 @@ public class Play_GameManager : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        try
         {
-            musicAudioSource.Stop();
-        }
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            PauseButton();
-        }
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                musicAudioSource.Stop();
+            }
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                PauseButton();
+            }
         
-        //Tick
+            //Tick
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-        if (musicAudioSource is not null && !musicAudioSource.isPlaying) return;
+            if (musicAudioSource is not null && !musicAudioSource.isPlaying) return;
 #elif UNITY_ANDROID || UNITY_IOS
-        
+            Log.Write((musicAudioSource == null).ToString(),LogType.Debug);
 #endif
         
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-        curTick = musicAudioSource.time * 1000;
-#elif UNITY_ANDROID || UNITY_IOS
-        curTick = musicAudioSource.GetPlaybackTime() * 1000;
+            curTick = musicAudioSource.time * 1000;
+#else 
+            curTick = musicAudioSource.GetPlaybackTime() * 1000;
 #endif
-        Time.text = curTick.ToString();
+            Time.text = curTick.ToString();
+        }
+        catch (Exception e)
+        {
+            Log.Write(e.ToString(),LogType.Error);
+            throw;
+        }
+        
     }
 
     #region 音频播放部分
@@ -151,9 +162,9 @@ public class Play_GameManager : MonoBehaviour
     private void DrawScene()
     {
         //预加载打击音频
-        var tapAudioClip = Resources.Load<AudioClip>("Audio/tapHit");
-        var dragAudioClip = Resources.Load<AudioClip>("Audio/dragHit");
-        var flickAudioClip = Resources.Load<AudioClip>("Audio/flickHit");
+        tapAudioClip = Resources.Load<AudioClip>("Audio/tapHit");
+        dragAudioClip = Resources.Load<AudioClip>("Audio/dragHit");
+        flickAudioClip = Resources.Load<AudioClip>("Audio/flickHit");
         
         //预加载打击特效
         var hitFxs = Resources.LoadAll<Sprite>("HitFx").ToList();
@@ -194,7 +205,6 @@ public class Play_GameManager : MonoBehaviour
                     // note类型，1 为 Tap、2 为 Hold、3 为 Flick、4 为 Drag
                     case 1:
                         noteGameObject = Instantiate(TapNote);
-                        noteGameObject.GetComponent<Play_Note>().HitClip = tapAudioClip;
                         break;
                     case 2:
                         //noteGameObject = Instantiate(HoldNote);
@@ -203,11 +213,9 @@ public class Play_GameManager : MonoBehaviour
                         goto next;
                     case 4:
                         noteGameObject = Instantiate(DragNote);
-                        noteGameObject.GetComponent<Play_Note>().HitClip = dragAudioClip;
                         break;
                     case 3:
                         noteGameObject = Instantiate(FlickNote);
-                        noteGameObject.GetComponent<Play_Note>().HitClip = flickAudioClip;
                         break;
                     default:
                         Log.Write($"Unknown note types in{i}", LogType.Error);
@@ -229,7 +237,6 @@ public class Play_GameManager : MonoBehaviour
             foreach (var hold in holdList)
             {
                 var head = Instantiate(HoldHead,instance.GetComponent<RectTransform>());
-                head.GetComponent<Play_HoldHead>().hitClip = tapAudioClip;
                 head.GetComponent<Play_HoldHead>().fatherJudgeLine = script;
                 head.GetComponent<Play_HoldHead>().Note = hold;
                 head.GetComponent<Play_HoldHead>().gameManager = this;
@@ -244,6 +251,7 @@ public class Play_GameManager : MonoBehaviour
                 end.GetComponent<Play_HoldEnd>().note = hold;
                 end.GetComponent<Play_HoldEnd>().GameManager = this;
             }
+            
         }
     }
     

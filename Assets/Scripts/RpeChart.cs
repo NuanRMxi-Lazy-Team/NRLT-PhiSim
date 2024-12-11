@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RpeEasing;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace RePhiEdit
@@ -133,11 +134,21 @@ namespace RePhiEdit
             {
                 // X轴：从 -675~675 直接映射到 -960~960
                 // Y轴：从 -450~450 直接映射到 -540~540
-
-                EventLayers.ForEach(eventLayer =>
+                // 克隆EventLayers，避免直接修改原始数据
+                rmd:
+                for (int i = 0; i < EventLayers.Count; i++)
+                {
+                    if (EventLayers[i] is null)
+                    {
+                        EventLayers.RemoveAt(i);
+                        // 防止越界，删除直至没有null
+                        goto rmd;
+                    }
+                }
+                EventLayers?.ForEach(eventLayer =>
                 {
                     // X轴坐标转换
-                    eventLayer.MoveXEvents.ForEach(e =>
+                    eventLayer?.MoveXEvents?.ForEach(e =>
                     {
                         // 直接按比例缩放，保持原点在中心
                         e.Start = e.Start * (1920f / (675f * 2));
@@ -145,7 +156,7 @@ namespace RePhiEdit
                     });
 
                     // Y轴坐标转换
-                    eventLayer.MoveYEvents.ForEach(e =>
+                    eventLayer?.MoveYEvents?.ForEach(e =>
                     {
                         // 直接按比例缩放，保持原点在中心
                         e.Start = e.Start * (1080f / (450f * 2));
@@ -153,13 +164,13 @@ namespace RePhiEdit
                     });
 
                     // Alpha值转换（0~255 到 0~1）保持不变
-                    eventLayer.AlphaEvents.ForEach(e =>
+                    eventLayer?.AlphaEvents?.ForEach(e =>
                     {
                         e.Start /= 255f;
                         e.End /= 255f;
                     });
                     // 取反旋转角度
-                    eventLayer.RotateEvents.ForEach(e =>
+                    eventLayer?.RotateEvents?.ForEach(e =>
                     {
                         e.Start = -e.Start;
                         e.End = -e.End;
@@ -167,7 +178,7 @@ namespace RePhiEdit
                 });
 
                 // Notes的X坐标转换
-                Notes.ForEach(note =>
+                Notes?.ForEach(note =>
                 {
                     note.PositionX = note.PositionX * (1920f / (675f * 2));
                     note.YOffset = note.YOffset * (1080f / (450f * 2));

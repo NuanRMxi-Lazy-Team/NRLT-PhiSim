@@ -1,4 +1,4 @@
-Shader "Custom/GaussianBlurWithBrightness"
+Shader "Custom/GaussianBlur"
 {
     Properties
     {

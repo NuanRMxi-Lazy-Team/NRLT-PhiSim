@@ -64,6 +64,16 @@ nrlt@nuanr-mxi.com
 软件源码除插件外，使用GPL v3.0协议开源，插件协议请自行查看，如您因为没有遵守插件协议造成的任何麻烦均与本项目无关。  
 贡献请在Github上提交PR，有问题发issue，若之issue会被直接关闭。
 
+## 开源项目引用
+
+### GPL v3
+FFmpeg：https://github.com/FFmpeg/FFmpeg  
+FFmpeg-Kit：https://github.com/arthenica/ffmpeg-kit  
+PhiDot：https://github.com/ChickenPige0n/PhiDot  
+phi-chart-render：https://github.com/MisaLiu/phi-chart-render
+
+### MPL-2.0
+PhiZone Player：https://github.com/PhiZone/player
 
 ---
 __「Writ deep into NuanR_▇▇ is a name you do not know」__
