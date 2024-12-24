@@ -5,34 +5,45 @@ using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RpeEasing;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace RePhiEdit
 {
-    public class RpeChart
+    public struct RpeChart
     {
-        [JsonProperty("BPMList")] public List<RpeClass.RpeBpm> BpmList = new();
-        [JsonProperty("META")] public RpeClass.Meta Meta = new();
-        [JsonProperty("judgeLineList")] public List<RpeClass.JudgeLine> JudgeLineList = new();
+        // 构造
+        public RpeChart(bool init = true)
+        {
+            BpmList = new List<RpeClass.RpeBpm>();
+            Meta = new RpeClass.Meta();
+            JudgeLineList = new List<RpeClass.JudgeLine>();
+            Illustration = null;
+            Music = null;
+        }
+
+        [JsonProperty("BPMList")] public List<RpeClass.RpeBpm> BpmList;
+        [JsonProperty("META")] public RpeClass.Meta Meta;
+        [JsonProperty("judgeLineList")] public List<RpeClass.JudgeLine> JudgeLineList;
 
         // 模拟器私有部分
-        public Sprite Illustration;
-        public AudioClip Music;
+        [CanBeNull] public Sprite Illustration;
+        [CanBeNull] public AudioClip Music;
     }
 
     public static class RpeClass
     {
-        public const float RpeSpeedToOfficial = 4.5f; // RPE速度转换为官谱速度的比例
+        private const float RpeSpeedToOfficial = 4.5f; // RPE速度转换为官谱速度的比例
 
         [JsonConverter(typeof(BeatJsonConverter))]
-        public class Beat
+        public struct Beat
         {
-            private readonly int[] _time;
+            private readonly int[] _beat;
+            private float? _time;
 
-            public Beat(int[] timeArray = null)
+            public Beat(int[] timeArray = null, List<RpeBpm> bpmList = null)
             {
-                _time = timeArray ?? new[] { 0, 0, 0 };
+                _beat = timeArray ?? new[] { 0, 0, 1 };
+                _time = null;
             }
 
             // 存储单个拍的时间，格式为 [0]:[1]/[2]，所以需要声明索引器，并确保不会越界，超过2抛出异常
@@ -45,7 +56,7 @@ namespace RePhiEdit
                         throw new IndexOutOfRangeException();
                     }
 
-                    return _time[index];
+                    return _beat[index];
                 }
                 set
                 {
@@ -54,7 +65,7 @@ namespace RePhiEdit
                         throw new IndexOutOfRangeException();
                     }
 
-                    _time[index] = value;
+                    _beat[index] = value;
                 }
             }
 
@@ -62,39 +73,54 @@ namespace RePhiEdit
 
             public float CurTime(List<RpeBpm> bpmList)
             {
-                float sec = 0.0f;
-                float t = CurBeat;
-                foreach (var e in bpmList)
+                if (_time.HasValue)
                 {
-                    float bpmv = e.Bpm;
-                    if (e != bpmList.Last())
+                    return _time.Value;
+                }
+
+                // 按开始拍数排序
+                //bpmList = bpmList.OrderBy(x => x.StartTime.CurBeat).ToList();
+                float totalTime = 0;
+                float currentBeat = 0;
+                for (int i = 0; i < bpmList.Count; i++)
+                {
+                    var currentBpm = bpmList[i];
+                    float msPerBeat = 60000f / currentBpm.Bpm; // 每拍的毫秒数
+
+                    // 计算到下一个BPM变化点或目标拍数的拍数
+                    float endBeat;
+                    if (i < bpmList.Count - 1)
                     {
-                        float etBeat = e.StartTime.CurBeat - e.StartTime.CurBeat;
-                        if (t >= etBeat)
-                        {
-                            sec += etBeat * (60 / bpmv);
-                            t -= etBeat;
-                        }
-                        else
-                        {
-                            sec += t * (60 / bpmv);
-                            break;
-                        }
+                        endBeat = Math.Min(bpmList[i + 1].StartTime.CurBeat, CurBeat);
                     }
                     else
                     {
-                        sec += t * (60 / bpmv);
+                        endBeat = CurBeat;
                     }
+
+                    // 计算这段BPM下经过的拍数
+                    float beatInterval = endBeat - currentBeat;
+
+                    // 累加时间
+                    totalTime += beatInterval * msPerBeat;
+
+                    // 更新当前拍位置
+                    currentBeat = endBeat;
+
+                    // 如果已经达到目标拍数，退出循环
+                    if (currentBeat >= CurBeat)
+                        break;
                 }
 
-                return sec * 1000;
+                _time = totalTime;
+                return totalTime;
             }
         }
 
         /// <summary>
         /// BPM
         /// </summary>
-        public class RpeBpm
+        public struct RpeBpm
         {
             [JsonProperty("bpm")] public float Bpm;
             [JsonProperty("startTime")] public Beat StartTime;
@@ -103,7 +129,7 @@ namespace RePhiEdit
         /// <summary>
         /// 元数据
         /// </summary>
-        public class Meta
+        public struct Meta
         {
             [JsonProperty("RPEVersion")] public int RpeVersion; // RPE版本
             [JsonProperty("background")] public string Background; // 曲绘
@@ -135,6 +161,7 @@ namespace RePhiEdit
                 // X轴：从 -675~675 直接映射到 -960~960
                 // Y轴：从 -450~450 直接映射到 -540~540
                 // 克隆EventLayers，避免直接修改原始数据
+                
                 rmd:
                 for (int i = 0; i < EventLayers.Count; i++)
                 {
@@ -145,32 +172,34 @@ namespace RePhiEdit
                         goto rmd;
                     }
                 }
+                
+
                 EventLayers?.ForEach(eventLayer =>
                 {
                     // X轴坐标转换
-                    eventLayer?.MoveXEvents?.ForEach(e =>
+                    eventLayer.MoveXEvents?.ForEach(e =>
                     {
                         // 直接按比例缩放，保持原点在中心
-                        e.Start = e.Start * (1920f / (675f * 2));
-                        e.End = e.End * (1920f / (675f * 2));
+                        e.Start *= (1920f / (675f * 2));
+                        e.End *= (1920f / (675f * 2));
                     });
 
                     // Y轴坐标转换
-                    eventLayer?.MoveYEvents?.ForEach(e =>
+                    eventLayer.MoveYEvents?.ForEach(e =>
                     {
                         // 直接按比例缩放，保持原点在中心
-                        e.Start = e.Start * (1080f / (450f * 2));
-                        e.End = e.End * (1080f / (450f * 2));
+                        e.Start *= (1080f / (450f * 2));
+                        e.End *= (1080f / (450f * 2));
                     });
 
                     // Alpha值转换（0~255 到 0~1）保持不变
-                    eventLayer?.AlphaEvents?.ForEach(e =>
+                    eventLayer.AlphaEvents?.ForEach(e =>
                     {
                         e.Start /= 255f;
                         e.End /= 255f;
                     });
                     // 取反旋转角度
-                    eventLayer?.RotateEvents?.ForEach(e =>
+                    eventLayer.RotateEvents?.ForEach(e =>
                     {
                         e.Start = -e.Start;
                         e.End = -e.End;
@@ -178,16 +207,27 @@ namespace RePhiEdit
                 });
 
                 // Notes的X坐标转换
-                Notes?.ForEach(note =>
+                for (int i = 0; i < Notes.Count; i++)
                 {
-                    note.PositionX = note.PositionX * (1920f / (675f * 2));
-                    note.YOffset = note.YOffset * (1080f / (450f * 2));
-                });
+                    var note = Notes[i];
+                    note.PositionX *= (1920f / (675f * 2));
+                    note.YOffset *= (1080f / (450f * 2));
+                    Notes[i] = note;
+                }
             }
         }
 
-        public class Extend
+        public struct Extend
         {
+            // 在构造中初始化，避免空引用
+            public Extend(bool init = true)
+            {
+                ColorEvents = new List<ColorEvent>();
+                ScaleXEvents = new EventList();
+                ScaleYEvents = new EventList();
+                TextEvents = new List<TextEvent>();
+            }
+
             [JsonProperty("colorEvents")] public List<ColorEvent> ColorEvents; // 颜色事件
             [JsonProperty("scaleXEvents")] public EventList ScaleXEvents; // X轴缩放事件
             [JsonProperty("scaleYEvents")] public EventList ScaleYEvents; // Y轴缩放事件
@@ -197,13 +237,24 @@ namespace RePhiEdit
         /// <summary>
         /// 单个事件层
         /// </summary>
+        //[JsonConverter(typeof(EventLayerConverter))]
         public class EventLayer
         {
-            [JsonProperty("moveXEvents")] public EventList MoveXEvents = new(); // 移动事件
-            [JsonProperty("moveYEvents")] public EventList MoveYEvents = new(); // 移动事件
-            [JsonProperty("rotateEvents")] public EventList RotateEvents = new(); // 旋转事件
-            [JsonProperty("alphaEvents")] public EventList AlphaEvents = new(); // 透明度事件
-            [JsonProperty("speedEvents")] public SpeedEventList SpeedEvents = new(); // 速度事件
+            // 在构造中初始化，避免空引用
+            public EventLayer()
+            {
+                MoveXEvents = new EventList();
+                MoveYEvents = new EventList();
+                RotateEvents = new EventList();
+                AlphaEvents = new EventList();
+                SpeedEvents = new SpeedEventList();
+            }
+
+            [JsonProperty("moveXEvents")] public EventList MoveXEvents; // 移动事件
+            [JsonProperty("moveYEvents")] public EventList MoveYEvents; // 移动事件
+            [JsonProperty("rotateEvents")] public EventList RotateEvents; // 旋转事件
+            [JsonProperty("alphaEvents")] public EventList AlphaEvents; // 透明度事件
+            [JsonProperty("speedEvents")] public SpeedEventList SpeedEvents; // 速度事件
         }
 
         /// <summary>
@@ -258,16 +309,26 @@ namespace RePhiEdit
 
         public class EventList : List<Event>
         {
+            private int _lastIndex = 0;
+
             public float GetValueAtTime(float t, List<RpeBpm> bpmList)
             {
-                var theEvent = this.FirstOrDefault(e =>
-                    t >= e.StartTime.CurTime(bpmList) && t <= e.EndTime.CurTime(bpmList));
-                if (theEvent != null)
+                for (int i = _lastIndex; i < this.Count; i++)
                 {
-                    return theEvent.GetValueAtTime(t, bpmList);
+                    var e = this[i];
+                    if (t >= e.StartTime.CurTime(bpmList) && t <= e.EndTime.CurTime(bpmList))
+                    {
+                        _lastIndex = i;
+                        return e.GetValueAtTime(t, bpmList);
+                    }
+
+                    if (t < e.StartTime.CurTime(bpmList))
+                    {
+                        break;
+                    }
                 }
 
-                var previousEvent = this.LastOrDefault(e => t > e.EndTime.CurTime(bpmList));
+                var previousEvent = this.FindLast(e => t > e.EndTime.CurTime(bpmList));
                 return previousEvent?.End ?? 0;
             }
         }
@@ -389,21 +450,39 @@ namespace RePhiEdit
             }
         }
 
-        public class Note
+        public struct Note
         {
-            [JsonProperty("above")] public int Above = 1; // 是否在判定线上方（1为上方，2为下方）
-            [JsonProperty("alpha")] public int Alpha = 255; // 透明度，255为不透明，0为透明
-            [JsonProperty("startTime")] public Beat StartTime = new(); // 开始时间
-            [JsonProperty("endTime")] public Beat EndTime = new(); // 结束时间
+            // 结构体初始化，避免空引用，以下原本是class的属性
+            public Note(bool init = true)
+            {
+                StartTime = new();
+                EndTime = new();
+                Alpha = 255;
+                Above = 1;
+                IsFake = 0;
+                PositionX = 0.0f;
+                Size = 1.0f;
+                SpeedMultiplier = 1.0f;
+                Type = 1;
+                VisibleTime = 999999.0000f;
+                YOffset = 0.0f;
+                FloorPosition = 0.0f;
+                HitSound = null;
+            }
+
+            [JsonProperty("above")] public int Above; // 是否在判定线上方（1为上方，2为下方）
+            [JsonProperty("alpha")] public int Alpha; // 透明度，255为不透明，0为透明
+            [JsonProperty("startTime")] public Beat StartTime; // 开始时间
+            [JsonProperty("endTime")] public Beat EndTime; // 结束时间
             [JsonProperty("isFake")] public int IsFake; // 是否为假note（1为假note，0为真note）
             [JsonProperty("positionX")] public float PositionX; // X坐标
-            [JsonProperty("size")] public float Size = 1.0f; // 宽度倍率
-            [JsonProperty("speed")] public float SpeedMultiplier = 1.0f; // 速度倍率
-            [JsonProperty("type")] public int Type = 1; // 类型（1 为 Tap、2 为 Hold、3 为 Flick、4 为 Drag）
-            [JsonProperty("visibleTime")] public float VisibleTime = 999999.0000f; // 可见时间（单位为秒）
+            [JsonProperty("size")] public float Size; // 宽度倍率
+            [JsonProperty("speed")] public float SpeedMultiplier; // 速度倍率
+            [JsonProperty("type")] public int Type; // 类型（1 为 Tap、2 为 Hold、3 为 Flick、4 为 Drag）
+            [JsonProperty("visibleTime")] public float VisibleTime; // 可见时间（单位为秒）
             [JsonProperty("yOffset")] public float YOffset; // Y偏移
             [JsonProperty("hitsound")] [CanBeNull] public string HitSound; // 音效
-            public float FloorPosition = 0.0f;
+            public float FloorPosition;
         }
     }
 
@@ -427,4 +506,6 @@ namespace RePhiEdit
             writer.WriteEndArray();
         }
     }
+
+    
 }

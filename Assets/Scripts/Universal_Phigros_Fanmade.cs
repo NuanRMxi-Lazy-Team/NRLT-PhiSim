@@ -81,53 +81,97 @@ namespace Phigros_Fanmade
         }
 
         #region 音频部分
+
         private static AudioClip ConvertWavToAudioClip(byte[] wavData)
         {
-            // 解析 WAV 文件头部信息
-            int channelCount = BitConverter.ToInt16(wavData, 22);
-            int sampleRate = BitConverter.ToInt32(wavData, 24);
-            int bitsPerSample = BitConverter.ToInt16(wavData, 34);
-            int dataChunkOffset = FindDataChunkOffset(wavData);
-            int dataSize = BitConverter.ToInt32(wavData, dataChunkOffset - 4);
-
-            int headerSize = dataChunkOffset + 4;
-            int sampleCount = dataSize / (bitsPerSample / 8);
-
-            float[] audioData = new float[sampleCount];
-
-            // 将音频数据转换为浮点数
-            int index = headerSize;
-            int i = 0;
-            while (index < wavData.Length)
+            if (wavData == null || wavData.Length < 44)
             {
-                short sample = BitConverter.ToInt16(wavData, index);
-                audioData[i] = sample / 32768f;
-                index += bitsPerSample / 8;
-                i++;
+                Debug.LogError("Invalid or corrupted WAV data: less than 44 bytes.");
+                return null;
+            }
+            
+            string riffHeader = System.Text.Encoding.UTF8.GetString(wavData, 0, 4);
+            string waveHeader = System.Text.Encoding.UTF8.GetString(wavData, 8, 4);
+            if (riffHeader != "RIFF" || waveHeader != "WAVE")
+            {
+                Debug.LogError("Invalid WAV file. Missing RIFF/WAVE headers.");
+                return null;
             }
 
-            // 创建 AudioClip 并填充数据
-            AudioClip audioClip = AudioClip.Create("ConvertedAudio", sampleCount, channelCount, sampleRate, false);
-            audioClip.SetData(audioData, 0);
+            // Number of channels is at offset 22, sample rate at 24, bits per sample at 34
+            short channelCount = BitConverter.ToInt16(wavData, 22);
+            int sampleRate = BitConverter.ToInt32(wavData, 24);
+            short bitsPerSample = BitConverter.ToInt16(wavData, 34);
 
+            // Locate the "data" chunk. Typically, it starts at offset 36 or later.
+            // This function finds the start of the data chunk by looking for the "data" tag.
+            int dataOffset = FindDataChunkOffset(wavData);
+            if (dataOffset < 0)
+            {
+                Debug.LogError("Could not find 'data' chunk in WAV file.");
+                return null;
+            }
+
+            // Data size is stored in the 4 bytes immediately after "data"
+            int dataSize = BitConverter.ToInt32(wavData, dataOffset + 4);
+            if (dataOffset + 8 + dataSize > wavData.Length)
+            {
+                Debug.LogError("WAV data size is invalid or file is truncated.");
+                return null;
+            }
+
+            // Calculate total sample count = dataSize / bytesPerSample (including all channels)
+            int bytesPerSample = bitsPerSample / 8;
+            int totalSampleCount = dataSize / bytesPerSample;
+            int sampleCountPerChannel = totalSampleCount / channelCount;
+
+            float[] audioData = new float[totalSampleCount];
+
+            // Convert raw PCM data to float samples
+            int sampleDataIndex = dataOffset + 8; // Move past "data" (4 bytes) + dataSize (4 bytes)
+            for (int i = 0; i < sampleCountPerChannel; i++)
+            {
+                for (int c = 0; c < channelCount; c++)
+                {
+                    // Make sure we don't read beyond the buffer:
+                    if (sampleDataIndex + 1 >= wavData.Length)
+                    {
+                        Debug.LogError("Attempted to read beyond WAV buffer. Stopping conversion.");
+                        break;
+                    }
+
+                    short sample = BitConverter.ToInt16(wavData, sampleDataIndex);
+                    sampleDataIndex += bytesPerSample;
+                    // Normalize 16-bit samples to the range [-1, 1]
+                    audioData[i * channelCount + c] = sample / 32768f;
+                }
+            }
+
+            // Create an AudioClip with the correct length, channel count, and sample rate
+            AudioClip audioClip =
+                AudioClip.Create("ConvertedAudio", sampleCountPerChannel, channelCount, sampleRate, false);
+            audioClip.SetData(audioData, 0);
             return audioClip;
         }
 
+        /// <summary>
+        /// Finds the starting index of the "data" chunk in the WAV file.
+        /// Looks for the ASCII string "data" in the byte array.
+        /// Returns -1 if not found.
+        /// </summary>
         private static int FindDataChunkOffset(byte[] wavData)
         {
-            // WAV 文件头部一般为44个字节，但有时包含额外的块，需要遍历找到 "data" 块
-            int offset = 12;
-            while (offset < wavData.Length)
+            for (int i = 12; i < wavData.Length - 4; i++)
             {
-                string chunkID = System.Text.Encoding.ASCII.GetString(wavData, offset, 4);
-                int chunkSize = BitConverter.ToInt32(wavData, offset + 4);
-                if (chunkID == "data")
+                // Compare 4 bytes to "data"
+                if (wavData[i] == 'd' && wavData[i + 1] == 'a'
+                                      && wavData[i + 2] == 't' && wavData[i + 3] == 'a')
                 {
-                    return offset + 8;
+                    return i;
                 }
-                offset += 8 + chunkSize;
             }
-            throw new Exception("未找到数据块");
+
+            return -1;
         }
 
         /// <summary>
@@ -306,7 +350,8 @@ namespace Phigros_Fanmade
                                     s.EndsWith(".bmp"))
                         .ToArray().First();
 
-                    var rpeChart = new RpeChart();
+                    var rpeChart = new RpeChart(true);
+                    
                     //检查是否含有三个必要字段，music，illustration和chart
                     if (musicFile == null || illustrationFile == null ||
                         rawChart == null)
@@ -330,9 +375,11 @@ namespace Phigros_Fanmade
                         throw new Exception(); //missingFile + "illustration");
                     }
 
-                    //读取谱面
+                    // 读取谱面
                     var jsonChart = JSON.Parse(rawChart);
-
+                    // 清空缓存
+                    musicTemp = null;
+                    illustrationTemp = null;
                     //载入音频和插图
                     Main_Button_Click.Enqueue(() =>
                     {
@@ -563,19 +610,21 @@ namespace Phigros_Fanmade
                             judgeLine.CoordinateTransformer();
                             foreach (var eventLayer in judgeLine.EventLayers)
                             {
-                                eventLayer?.SpeedEvents?.CalcFloorPosition(rpeChart.BpmList);
+                                eventLayer.SpeedEvents?.CalcFloorPosition(rpeChart.BpmList);
                             }
 
-                            foreach (var note in judgeLine.Notes)
+                            for (int i = 0; i < judgeLine.Notes.Count; i++)
                             {
+                                var note = judgeLine.Notes[i];
                                 note.FloorPosition =
                                     judgeLine.EventLayers.GetCurFloorPosition(note.StartTime.CurTime(rpeChart.BpmList),
                                         rpeChart.BpmList);
+                                judgeLine.Notes[i] = note;
                             }
                         }
 
                         //检查是否被赋值，没有就等待到被赋值
-                        while (musicTemp == null || illustrationTemp == null)
+                        while (musicTemp is null || illustrationTemp is null)
                         {
                         }
 

@@ -7,6 +7,7 @@ using UnityEngine.Localization.Settings;
 using Phigros_Fanmade;
 using UnityEngine.SceneManagement;
 using Keiwando.NFSO;
+using RePhiEdit;
 
 #if UNITY_ANDROID
 using UnityEngine.Android;
@@ -151,10 +152,12 @@ public class Main_Button_Click : MonoBehaviour
 
     public void Play()
     {
-        if (ChartCache.Instance.chart != null)
+        //进入测试播放屏幕
+        SceneManager.LoadScene(1);
+        /*
+        if (ChartCache.Instance.chart is new RpeChart())
         {
-            //进入测试播放屏幕
-            SceneManager.LoadScene(1);
+            
         }
         else
         {
@@ -164,6 +167,7 @@ public class Main_Button_Click : MonoBehaviour
             GameObject instance = Instantiate(messageBox, parent.transform);
             instance.GetComponent<MessageBox_Scripts>().showText = "unknown Chart...";
         }
+        */
     }
     
     public void GotoSettings()

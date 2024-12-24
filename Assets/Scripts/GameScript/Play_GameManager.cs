@@ -43,9 +43,9 @@ public class Play_GameManager : MonoBehaviour
     public GameObject Illistration;
 
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-    private AudioSource musicAudioSource;
+    private AudioSource _musicAudioSource;
 #elif UNITY_ANDROID || UNITY_IOS
-    private NativeSource musicAudioSource;
+    private NativeSource _musicAudioSource;
 #endif
     
 
@@ -71,7 +71,7 @@ public class Play_GameManager : MonoBehaviour
         //输出结果到DEBUGLOG
         Log.Write("Calculated Orthographic Size: " + orthographicSize, LogType.Debug);
         //检查缓存中是否存在谱面
-        if (ChartCache.Instance.chart != null)
+        if (ChartCache.Instance.chart.Music is not null)
         {
             //加载谱面
             DrawScene();
@@ -91,7 +91,7 @@ public class Play_GameManager : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.Escape))
             {
-                musicAudioSource.Stop();
+                _musicAudioSource.Stop();
             }
             if (Input.GetKeyDown(KeyCode.Space))
             {
@@ -100,15 +100,15 @@ public class Play_GameManager : MonoBehaviour
         
             //Tick
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-            if (musicAudioSource is not null && !musicAudioSource.isPlaying) return;
+            if (_musicAudioSource is not null && !_musicAudioSource.isPlaying) return;
 #elif UNITY_ANDROID || UNITY_IOS
-            Log.Write((musicAudioSource == null).ToString(),LogType.Debug);
+            Log.Write((_musicAudioSource == null).ToString(),LogType.Debug);
 #endif
         
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-            curTick = musicAudioSource.time * 1000;
+            curTick = _musicAudioSource.time * 1000;
 #else 
-            curTick = musicAudioSource.GetPlaybackTime() * 1000;
+            curTick = _musicAudioSource.GetPlaybackTime() * 1000;
 #endif
             Time.text = curTick.ToString();
         }
@@ -125,14 +125,14 @@ public class Play_GameManager : MonoBehaviour
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
     IEnumerator MusicPlay(AudioClip music, double time)
     {
-        musicAudioSource = gameObject.AddComponent<AudioSource>();
-        musicAudioSource.clip = music;
-        musicAudioSource.loop = false; //禁用循环播放
+        _musicAudioSource = gameObject.AddComponent<AudioSource>();
+        _musicAudioSource.clip = music;
+        _musicAudioSource.loop = false; //禁用循环播放
         while (true)
         {
             if (time <= curTick)
             {
-                musicAudioSource.Play();
+                _musicAudioSource.Play();
                 break;
             }
             yield return null;
@@ -144,12 +144,12 @@ public class Play_GameManager : MonoBehaviour
         NativeAudio.Initialize();
         //预加载音乐
         NativeAudioPointer audioPointer = NativeAudio.Load(music);
-        musicAudioSource = new NativeSource();
+        _musicAudioSource = new NativeSource();
         while (true)
         {
             if (time <= curTick)
             {
-                musicAudioSource.Play(audioPointer);
+                _musicAudioSource.Play(audioPointer);
                 break;
             }
             yield return null;
@@ -199,28 +199,17 @@ public class Play_GameManager : MonoBehaviour
             List<RpeClass.Note> holdList = new();
             foreach (var note in chart.JudgeLineList[i].Notes)
             {
-                GameObject noteGameObject;
-                switch (note.Type)
+                GameObject noteGameObject = note.Type switch
                 {
-                    // note类型，1 为 Tap、2 为 Hold、3 为 Flick、4 为 Drag
-                    case 1:
-                        noteGameObject = Instantiate(TapNote);
-                        break;
-                    case 2:
-                        //noteGameObject = Instantiate(HoldNote);
-                        //noteGameObject.GetComponent<Play_Note>().HitClip = tapAudioClip;
-                        holdList.Add(note);
-                        goto next;
-                    case 4:
-                        noteGameObject = Instantiate(DragNote);
-                        break;
-                    case 3:
-                        noteGameObject = Instantiate(FlickNote);
-                        break;
-                    default:
-                        Log.Write($"Unknown note types in{i}", LogType.Error);
-                        noteGameObject = Instantiate(TapNote);
-                        break;
+                    1 => Instantiate(TapNote),
+                    3 => Instantiate(FlickNote),
+                    4 => Instantiate(DragNote),
+                    _ => null
+                };
+                if (noteGameObject is null)
+                {
+                    holdList.Add(note);
+                    goto next;
                 }
                 //设置基本参数
                 var playNote = noteGameObject.GetComponent<Play_Note>();
@@ -259,38 +248,65 @@ public class Play_GameManager : MonoBehaviour
     public void Pause()
     {
         //暂停音乐
-        musicAudioSource.Pause();
+        _musicAudioSource.Pause();
     }
 
     public void Resume()
     {
         //继续播放
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-        musicAudioSource.Play();
+        _musicAudioSource.Play();
 #elif UNITY_ANDROID || UNITY_IOS
-        musicAudioSource.SetPlaybackTime(curTick / 1000);
+        _musicAudioSource.SetPlaybackTime(curTick / 1000);
 #endif
     }
 
     public void JumpToTick(float tick)
     {
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-        musicAudioSource.time = tick / 1000;
+        _musicAudioSource.time = tick / 1000;
 #elif UNITY_ANDROID || UNITY_IOS
-        musicAudioSource.SetPlaybackTime(tick / 1000);
+        _musicAudioSource.SetPlaybackTime(tick / 1000);
 #endif
     }
     
-    private bool isPaused = false;
+    private bool _isPaused = false;
     public void PauseButton()
     {
-        if (isPaused)
+        if (_isPaused)
         {
             Resume();
-            isPaused = false;
+            _isPaused = false;
             return;
         }
         Pause();
-        isPaused = true;
+        _isPaused = true;
+    }
+
+    public void PlayHitSound(int type)
+    {
+        AudioSource hitAudioSource = gameObject.AddComponent<AudioSource>();
+        AudioClip hitAudioClip = type switch
+        {
+            1 => tapAudioClip,
+            2 => tapAudioClip,
+            3 => flickAudioClip,
+            4 => dragAudioClip,
+            _ => tapAudioClip
+        };
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+        hitAudioSource.clip = hitAudioClip;
+        hitAudioSource.loop = false;
+        hitAudioSource.Play();
+        Destroy(hitAudioSource, hitAudioClip.length);
+#elif UNITY_ANDROID || UNITY_IOS
+        NativeAudioPointer adp = NativeAudio.Load(hitAudioClip);
+        NativeSource mAS = new NativeSource();
+        mAS.Play(adp);
+#endif
+    }
+    public void PlayHitSound(string path)
+    {
+        
     }
 }
