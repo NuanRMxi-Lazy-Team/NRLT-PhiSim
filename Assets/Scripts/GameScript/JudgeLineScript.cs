@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Phigros_Fanmade;
+using PhigrosFanmade;
 using RePhiEdit;
 using TMPro;
 using LogType = LogWriter.LogType;

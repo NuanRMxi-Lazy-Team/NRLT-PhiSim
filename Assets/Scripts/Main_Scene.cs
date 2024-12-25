@@ -4,7 +4,7 @@ using UnityEngine;
 using LogWriter;
 using LogType = LogWriter.LogType;
 using UnityEngine.Localization.Settings;
-using Phigros_Fanmade;
+using PhigrosFanmade;
 using UnityEngine.SceneManagement;
 using Keiwando.NFSO;
 using RePhiEdit;

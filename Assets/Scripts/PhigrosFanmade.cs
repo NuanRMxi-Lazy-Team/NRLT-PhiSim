@@ -5,37 +5,38 @@ using SimpleJSON;
 using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using JetBrains.Annotations;
 using LogWriter;
 using LogType = LogWriter.LogType;
-using UnityEngine.Localization.Settings;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using RePhiEdit;
-using UnityEngine.Networking;
-using Debug = UnityEngine.Debug;
 
 
-namespace Phigros_Fanmade
+namespace PhigrosFanmade
 {
     public class Chart
     {
-        public const float HeightRatio = 1.83175f; // 神秘常量，爱来自Mivik
-        public const float RpeSpeedToOfficial = 4.5f; // RPE速度转换为官谱速度的比例
+        private const float RpeSpeedToOfficial = 4.5f; // RPE速度转换为官谱速度的比例
 
         /// <summary>
         /// 官谱时间转换
         /// </summary>
-        /// <param name="T"></param>
-        /// <param name="bpm"></param>
+        /// <param name="T">时间</param>
+        /// <param name="bpm">BPM</param>
         /// <returns>此时间对应的毫秒</returns>
+        [Obsolete("用不着了，去用 ConvertToRpeTime 方法吧")]
         private static double OfficialV3_TimeConverter(double T, float bpm)
         {
             var originalTime = T / bpm * 1.875; //结果为秒
             return originalTime * 1000; //返回毫秒
         }
-
+        
+        /// <summary>
+        /// 转换官谱时间为RPE时间
+        /// </summary>
+        /// <param name="beat128">128分音符时间，对应官谱时间</param>
+        /// <returns>RPE时间数组</returns>
         private static int[] ConvertToRpeTime(int beat128)
         {
             int[] result = new int[3];
@@ -81,73 +82,73 @@ namespace Phigros_Fanmade
         }
 
         #region 音频部分
-
+        // 这就是AI写的，我不演
         private static AudioClip ConvertWavToAudioClip(byte[] wavData)
         {
             if (wavData == null || wavData.Length < 44)
             {
-                Debug.LogError("Invalid or corrupted WAV data: less than 44 bytes.");
+                Log.Write("未知的或损坏的WAV数据：少于44字节", LogType.Error);
                 return null;
             }
-            
+
             string riffHeader = System.Text.Encoding.UTF8.GetString(wavData, 0, 4);
             string waveHeader = System.Text.Encoding.UTF8.GetString(wavData, 8, 4);
             if (riffHeader != "RIFF" || waveHeader != "WAVE")
             {
-                Debug.LogError("Invalid WAV file. Missing RIFF/WAVE headers.");
+                Log.Write("无效的WAV文件：缺少RIFF/WAVE头", LogType.Error);
                 return null;
             }
-
-            // Number of channels is at offset 22, sample rate at 24, bits per sample at 34
+            
+            // 通道数在偏移22，采样率在24，每个样本的位数在34
             short channelCount = BitConverter.ToInt16(wavData, 22);
             int sampleRate = BitConverter.ToInt32(wavData, 24);
             short bitsPerSample = BitConverter.ToInt16(wavData, 34);
-
-            // Locate the "data" chunk. Typically, it starts at offset 36 or later.
-            // This function finds the start of the data chunk by looking for the "data" tag.
+            
+            // 找到“data”块。通常，它从偏移36或更晚开始。
+            // 此函数通过查找“data”标记来找到数据块的开头。
             int dataOffset = FindDataChunkOffset(wavData);
             if (dataOffset < 0)
             {
-                Debug.LogError("Could not find 'data' chunk in WAV file.");
+                Log.Write("无法在WAV文件中找到'data'块", LogType.Error);
                 return null;
             }
-
-            // Data size is stored in the 4 bytes immediately after "data"
+            
+            // 数据大小存储在“data”后的4个字节中
             int dataSize = BitConverter.ToInt32(wavData, dataOffset + 4);
             if (dataOffset + 8 + dataSize > wavData.Length)
             {
-                Debug.LogError("WAV data size is invalid or file is truncated.");
+                Log.Write("WAV数据大小无效或文件被截断", LogType.Error);
                 return null;
             }
-
-            // Calculate total sample count = dataSize / bytesPerSample (including all channels)
+            
+            // 计算总样本数 = dataSize / bytesPerSample（包括所有通道）
             int bytesPerSample = bitsPerSample / 8;
             int totalSampleCount = dataSize / bytesPerSample;
             int sampleCountPerChannel = totalSampleCount / channelCount;
 
             float[] audioData = new float[totalSampleCount];
-
-            // Convert raw PCM data to float samples
-            int sampleDataIndex = dataOffset + 8; // Move past "data" (4 bytes) + dataSize (4 bytes)
+            
+            // 转换原始PCM数据为浮点样本
+            int sampleDataIndex = dataOffset + 8; // 移动到“data”（4字节）+ dataSize（4字节）
             for (int i = 0; i < sampleCountPerChannel; i++)
             {
                 for (int c = 0; c < channelCount; c++)
                 {
-                    // Make sure we don't read beyond the buffer:
+                    // 确定不会超出缓冲区：
                     if (sampleDataIndex + 1 >= wavData.Length)
                     {
-                        Debug.LogError("Attempted to read beyond WAV buffer. Stopping conversion.");
+                        Log.Write("尝试去读超出WAV缓冲区。停止转换。", LogType.Error);
                         break;
                     }
 
                     short sample = BitConverter.ToInt16(wavData, sampleDataIndex);
                     sampleDataIndex += bytesPerSample;
-                    // Normalize 16-bit samples to the range [-1, 1]
+                    // 将16位样本归一化到范围[-1，1]
                     audioData[i * channelCount + c] = sample / 32768f;
                 }
             }
-
-            // Create an AudioClip with the correct length, channel count, and sample rate
+            
+            // 新建一个AudioClip，长度、通道数和采样率都是正确的
             AudioClip audioClip =
                 AudioClip.Create("ConvertedAudio", sampleCountPerChannel, channelCount, sampleRate, false);
             audioClip.SetData(audioData, 0);
@@ -155,9 +156,9 @@ namespace Phigros_Fanmade
         }
 
         /// <summary>
-        /// Finds the starting index of the "data" chunk in the WAV file.
-        /// Looks for the ASCII string "data" in the byte array.
-        /// Returns -1 if not found.
+        /// 查找 WAV 文件中 "data" 块的起始索引。
+        /// 在字节数组中查找 ASCII 字符串 "data"。
+        /// 如果未找到，则返回 -1。
         /// </summary>
         private static int FindDataChunkOffset(byte[] wavData)
         {
@@ -182,7 +183,7 @@ namespace Phigros_Fanmade
         [CanBeNull]
         private static AudioClip LoadAudioClip(string filePath)
         {
-            string outputFilePath = Path.GetDirectoryName(filePath) + "/output.wav";
+            var outputFilePath = Path.GetDirectoryName(filePath) + "/output.wav";
 
 #if !UNITY_EDITOR_WIN && UNITY_ANDROID
             outputFilePath = Path.Combine(Application.persistentDataPath, "output.wav");
@@ -211,15 +212,15 @@ namespace Phigros_Fanmade
             // 构建 FFmpeg 命令行参数
             string arguments = $"-i \"{filePath}\" -y -nostdin \"{outputFilePath}\""; // 输入文件和输出文件路径，确保路径中包含空格时使用引号
 
-            ProcessStartInfo startInfo = new ProcessStartInfo
+            var startInfo = new ProcessStartInfo
             {
-                FileName = ffmpegPath, // 指定 FFmpeg 可执行文件路径
-                Arguments = arguments, // 指定命令行参数
-                CreateNoWindow = true, // 不显示命令行窗口
-                UseShellExecute = false, // 不使用系统外壳执行
+                FileName = ffmpegPath, // FFmpeg 可执行文件路径
+                Arguments = arguments, // 参数
+                CreateNoWindow = true, // 不显示窗口
+                UseShellExecute = false, // 不使用系统shell执行
             };
 
-            Process process = new Process
+            var process = new Process
             {
                 StartInfo = startInfo
             };
@@ -269,8 +270,8 @@ namespace Phigros_Fanmade
 
         //Data
         public string RawChart;
-        private static AudioClip musicTemp;
-        private static Sprite illustrationTemp;
+        private static AudioClip _musicTemp;
+        private static Sprite _illustrationTemp;
 
         #region 谱面转换区块
 
@@ -326,8 +327,8 @@ namespace Phigros_Fanmade
                         // 选取第一个名称不是config.json的文件
                         foreach (var jsonFile in jsonFiles)
                         {
-                            if (Path.GetFileName(jsonFile) != "config.json" &&
-                                Path.GetFileName(jsonFile) != "extra.json")
+                            var fileName = Path.GetFileName(jsonFile);
+                            if (fileName != "config.json" && fileName != "extra.json")
                             {
                                 rawChart = File.ReadAllText(jsonFile);
                             }
@@ -351,7 +352,7 @@ namespace Phigros_Fanmade
                         .ToArray().First();
 
                     var rpeChart = new RpeChart(true);
-                    
+
                     //检查是否含有三个必要字段，music，illustration和chart
                     if (musicFile == null || illustrationFile == null ||
                         rawChart == null)
@@ -378,13 +379,13 @@ namespace Phigros_Fanmade
                     // 读取谱面
                     var jsonChart = JSON.Parse(rawChart);
                     // 清空缓存
-                    musicTemp = null;
-                    illustrationTemp = null;
+                    _musicTemp = null;
+                    _illustrationTemp = null;
                     //载入音频和插图
                     Main_Button_Click.Enqueue(() =>
                     {
-                        musicTemp = LoadAudioClip(musicFile);
-                        illustrationTemp =
+                        _musicTemp = LoadAudioClip(musicFile);
+                        _illustrationTemp =
                             BytesToSprite(File.ReadAllBytes(illustrationFile));
                     });
 
@@ -587,12 +588,12 @@ namespace Phigros_Fanmade
                         }
 
                         //检查是否被赋值，没有就等待到被赋值
-                        while (musicTemp == null || illustrationTemp == null)
+                        while (_musicTemp == null || _illustrationTemp == null)
                         {
                         }
 
-                        rpeChart.Music = musicTemp;
-                        rpeChart.Illustration = illustrationTemp;
+                        rpeChart.Music = _musicTemp;
+                        rpeChart.Illustration = _illustrationTemp;
                         return rpeChart;
                     }
                     else if (jsonChart["formatVersion"] == 1)
@@ -624,12 +625,12 @@ namespace Phigros_Fanmade
                         }
 
                         //检查是否被赋值，没有就等待到被赋值
-                        while (musicTemp is null || illustrationTemp is null)
+                        while (_musicTemp is null || _illustrationTemp is null)
                         {
                         }
 
-                        rpeChart.Music = musicTemp;
-                        rpeChart.Illustration = illustrationTemp;
+                        rpeChart.Music = _musicTemp;
+                        rpeChart.Illustration = _illustrationTemp;
                         return rpeChart;
                     }
                     else
@@ -651,72 +652,4 @@ namespace Phigros_Fanmade
 
         #endregion
     }
-
-
-    /*
-    public class SpeedEventList : List<Events.SpeedEvent>
-    {
-        public void CalcFloorPosition()
-        {
-            foreach (Events.SpeedEvent lastEvent in this)
-            {
-                int i = IndexOf(lastEvent);
-                if (i == Count - 1) break;
-                var curEvent = this[i + 1];
-
-                double lastStartTime = lastEvent.startTime;
-                double lastEndTime = lastEvent.endTime;
-
-                double curStartTime = curEvent.startTime;
-
-
-                curEvent.FloorPosition +=
-                    lastEvent.FloorPosition +
-                    (lastEvent.endValue + lastEvent.startValue) * (lastEndTime - lastStartTime) / 2 +
-                    lastEvent.endValue * (curStartTime - lastEndTime) / 1;
-            }
-        }
-
-
-
-        /// <summary>
-        /// 获取当前时间的速度积分，计算Note和当前时间的floorPosition的主要方法
-        /// </summary>
-        /// <param name="time">当前时间，单位毫秒</param>
-        /// <returns>从谱面开始到当前时间的总路程</returns>
-        public double GetCurTimeSu(double time)
-        {
-            var floorPosition = 0.0d;
-            foreach (Events.SpeedEvent speedEvent in this)
-            {
-                var startTime = speedEvent.startTime;
-                var endTime = speedEvent.endTime;
-
-                var i = IndexOf(speedEvent);
-                if (Math.Abs(time - speedEvent.startTime) < 1e-5)
-                {
-                    floorPosition += speedEvent.FloorPosition;
-                    break;
-                }
-
-                if (time <= speedEvent.endTime)
-                {
-                    floorPosition += speedEvent.FloorPosition +
-                                     (speedEvent.startValue + (speedEvent.endValue - speedEvent.startValue) *
-                                      (time - startTime) / (endTime - startTime) +
-                                      speedEvent.startValue) * (time - startTime) / 2;
-                    break;
-                }
-
-                if (Count - 1 != i && !(time <= this[i + 1].startTime)) continue;
-                floorPosition += speedEvent.FloorPosition +
-                                 (speedEvent.endValue + speedEvent.startValue) * (endTime - startTime) / 2 +
-                                 speedEvent.endValue * (time - endTime) / 1;
-                break;
-            }
-
-            return floorPosition;
-        }
-    }
-    */
 }

@@ -238,7 +238,7 @@ public class Play_GameManager : MonoBehaviour
                 var end = Instantiate(HoldEnd, instance.GetComponent<RectTransform>());
                 end.GetComponent<Play_HoldEnd>().fatherJudgeLine = script;
                 end.GetComponent<Play_HoldEnd>().note = hold;
-                end.GetComponent<Play_HoldEnd>().GameManager = this;
+                end.GetComponent<Play_HoldEnd>().gameManager = this;
             }
             
         }

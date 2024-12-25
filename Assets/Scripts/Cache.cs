@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Phigros_Fanmade;
+using PhigrosFanmade;
 using UnityEngine;
 using RePhiEdit;
 

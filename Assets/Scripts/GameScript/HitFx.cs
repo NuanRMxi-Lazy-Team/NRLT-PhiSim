@@ -10,7 +10,7 @@ public class HitFx : MonoBehaviour
 {
     private List<Sprite> _hitFxSprites;
 
-    //[FormerlySerializedAs("GameManager")] 
+    //[FormerlySerializedAs("gameManager")] 
     [HideInInspector]
     public Play_GameManager gameManager;
     public RectTransform rectTransform;

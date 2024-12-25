@@ -1,6 +1,6 @@
 using System.Collections;
 using System;
-using Phigros_Fanmade;
+using PhigrosFanmade;
 using RePhiEdit;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -69,8 +69,8 @@ public class Play_Note : MonoBehaviour
         }
 
         // 根据速度（像素/秒）计算y坐标
-        //float yPosition = (float)(speed * (note.clickStartTime / 1000 - elapsedTime) * 648 * note.speedMultiplier); // 这里加入了速度单位648像素/秒，648是1080 * 0.6
-        //弃用原直接计算，使用floorPos进行计算。
+        // float yPosition = (float)(speed * (note.clickStartTime / 1000 - elapsedTime) * 648 * note.speedMultiplier); // 这里加入了速度单位648像素/秒，648是1080 * 0.6
+        // 弃用原直接计算，使用floorPos进行计算。
         float newYPosition =
         (
             fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime,GameManager.BpmList) -
