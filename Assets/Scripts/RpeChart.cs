@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using LogWriter;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RpeEasing;
 using UnityEngine;
+using LogType = LogWriter.LogType;
 
 namespace RePhiEdit
 {
@@ -46,7 +48,7 @@ namespace RePhiEdit
                 _time = null;
             }
 
-            // 存储单个拍的时间，格式为 [0]:[1]/[2]，所以需要声明索引器，并确保不会越界，超过2抛出异常
+            // 存储单个拍的时间，格式为 [0]:[1]/[2]
             public int this[int index]
             {
                 get
@@ -55,7 +57,6 @@ namespace RePhiEdit
                     {
                         throw new IndexOutOfRangeException();
                     }
-
                     return _beat[index];
                 }
                 set
@@ -64,7 +65,6 @@ namespace RePhiEdit
                     {
                         throw new IndexOutOfRangeException();
                     }
-
                     _beat[index] = value;
                 }
             }
@@ -74,13 +74,8 @@ namespace RePhiEdit
             public float CurTime()
             {
                 var bpmList = RpeChart.BpmList;
-                if (_time.HasValue)
-                {
-                    return _time.Value;
-                }
-
-                // 按开始拍数排序
-                //bpmList = bpmList.OrderBy(x => x.StartTime.CurBeat).ToList();
+                if (_time.HasValue) return _time.Value;
+                
                 float totalTime = 0;
                 float currentBeat = 0;
                 for (int i = 0; i < bpmList.Count; i++)
@@ -89,15 +84,7 @@ namespace RePhiEdit
                     float msPerBeat = 60000f / currentBpm.Bpm; // 每拍的毫秒数
 
                     // 计算到下一个BPM变化点或目标拍数的拍数
-                    float endBeat;
-                    if (i < bpmList.Count - 1)
-                    {
-                        endBeat = Math.Min(bpmList[i + 1].StartTime.CurBeat, CurBeat);
-                    }
-                    else
-                    {
-                        endBeat = CurBeat;
-                    }
+                    float endBeat = i< bpmList.Count - 1 ? Math.Min(bpmList[i + 1].StartTime.CurBeat, CurBeat) : CurBeat;
 
                     // 计算这段BPM下经过的拍数
                     float beatInterval = endBeat - currentBeat;
@@ -222,33 +209,27 @@ namespace RePhiEdit
         {
             public (float, float) GetLinePosition(int index, float time)
             {
-                if (this[index].Father != -1)
-                {
-                    int fatherIndex = this[index].Father;
-                    // 获取父线位置
-                    var (fatherX, fatherY) = GetLinePosition(fatherIndex, time);
+                // 在没有父线的情况下直接返回
+                if (this[index].Father == -1) return (this[index].EventLayers.GetXAtTime(time), this[index].EventLayers.GetYAtTime(time));
+                
+                int fatherIndex = this[index].Father;
+                // 获取父线位置
+                var (fatherX, fatherY) = GetLinePosition(fatherIndex, time);
         
-                    // 获取当前线相对于父线的偏移量
-                    float offsetX = this[index].EventLayers.GetXAtTime(time);
-                    float offsetY = this[index].EventLayers.GetYAtTime(time);
+                // 获取当前线相对于父线的偏移量
+                float offsetX = this[index].EventLayers.GetXAtTime(time);
+                float offsetY = this[index].EventLayers.GetYAtTime(time);
         
-                    // 获取父线的角度并转换为弧度
-                    float angleDegrees = this[fatherIndex].EventLayers.GetAngleAtTime(time);
-                    float angleRadians = (((angleDegrees % 360) + 360) % 360) * Mathf.PI / 180f;
+                // 获取父线的角度并转换为弧度
+                float angleDegrees = this[fatherIndex].EventLayers.GetAngleAtTime(time);
+                float angleRadians = (angleDegrees % 360 + 360) % 360 * Mathf.PI / 180f;
         
-                    // 对偏移量进行旋转
-                    float rotatedOffsetX = (float)(offsetX * Math.Cos(angleRadians) - offsetY * Math.Sin(angleRadians));
-                    float rotatedOffsetY = (float)(offsetX * Math.Sin(angleRadians) + offsetY * Math.Cos(angleRadians));
+                // 对偏移量进行旋转
+                float rotatedOffsetX = (float)(offsetX * Math.Cos(angleRadians) - offsetY * Math.Sin(angleRadians));
+                float rotatedOffsetY = (float)(offsetX * Math.Sin(angleRadians) + offsetY * Math.Cos(angleRadians));
         
-                    // 最后加上父线的位置得到最终位置
-                    return (fatherX + rotatedOffsetX, fatherY + rotatedOffsetY);
-                }
-    
-                // 没有父线的情况，直接返回自身的位置
-                return (
-                    this[index].EventLayers.GetXAtTime(time),
-                    this[index].EventLayers.GetYAtTime(time)
-                );
+                // 最后加上父线的位置得到最终位置
+                return (fatherX + rotatedOffsetX, fatherY + rotatedOffsetY);
             }
 
         }
@@ -273,7 +254,6 @@ namespace RePhiEdit
         /// <summary>
         /// 单个事件层
         /// </summary>
-        //[JsonConverter(typeof(EventLayerConverter))]
         public class EventLayer
         {
             [JsonProperty("moveXEvents")] public EventList MoveXEvents = new(); // 移动事件
@@ -310,15 +290,15 @@ namespace RePhiEdit
         /// </summary>
         public class Event
         {
-            [JsonProperty("bezier")] public int Bezier; // 是否为贝塞尔曲线
-            [JsonProperty("bezierPoints")] public float[] BezierPoints = { 0.0f, 0.0f, 0.0f, 0.0f }; // 贝塞尔曲线点
-            [JsonProperty("easingLeft")] public float EasingLeft; // 缓动开始
-            [JsonProperty("easingRight")] public float EasingRight = 1.0f; // 缓动结束
-            [JsonProperty("easingType")] public int EasingType = 1; // 缓动类型
-            [JsonProperty("start")] public float Start; // 开始值
-            [JsonProperty("end")] public float End; // 结束值
-            [JsonProperty("startTime")] public Beat StartTime; // 开始时间
-            [JsonProperty("endTime")] public Beat EndTime; // 结束时间
+            [JsonProperty("bezier")] public int Bezier;                                 // 是否为贝塞尔曲线
+            [JsonProperty("bezierPoints")] public float[] BezierPoints = new float[4];  // 贝塞尔曲线点
+            [JsonProperty("easingLeft")] public float EasingLeft;                       // 缓动开始
+            [JsonProperty("easingRight")] public float EasingRight = 1.0f;              // 缓动结束
+            [JsonProperty("easingType")] public int EasingType = 1;                     // 缓动类型
+            [JsonProperty("start")] public float Start;                                 // 开始值
+            [JsonProperty("end")] public float End;                                     // 结束值
+            [JsonProperty("startTime")] public Beat StartTime;                          // 开始时间
+            [JsonProperty("endTime")] public Beat EndTime;                              // 结束时间
 
             public float GetValueAtTime(float time)
             {
@@ -329,7 +309,7 @@ namespace RePhiEdit
                 //获得当前拍的值
                 float easedBeat = Easing.Evaluate(EasingType, EasingLeft, EasingRight, t);
                 //插值
-                return Mathf.Lerp(Start, End, easedBeat);
+                return Mathf.LerpUnclamped(Start, End, easedBeat);
             }
         }
 
@@ -455,9 +435,9 @@ namespace RePhiEdit
                 //插值，RGB三个颜色值
                 return new[]
                 {
-                    Mathf.Lerp(Start[0], End[0], easedBeat),
-                    Mathf.Lerp(Start[1], End[1], easedBeat),
-                    Mathf.Lerp(Start[2], End[2], easedBeat)
+                    Mathf.LerpUnclamped(Start[0], End[0], easedBeat),
+                    Mathf.LerpUnclamped(Start[1], End[1], easedBeat),
+                    Mathf.LerpUnclamped(Start[2], End[2], easedBeat)
                 };
             }
         }
@@ -471,6 +451,7 @@ namespace RePhiEdit
             // 覆写GetValue方法，返回抛出异常
             public new string GetValueAtTime(float t)
             {
+                // TODO: 文字事件插值
                 throw new NotImplementedException();
             }
         }

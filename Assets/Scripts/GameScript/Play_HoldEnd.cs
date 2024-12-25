@@ -40,7 +40,7 @@ public class Play_HoldEnd : MonoBehaviour
         (
             fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(gameManager.curTick) -
             fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(note.EndTime.CurTime())
-        );
+        ) - 6f;
 
         return note.Above == 1 ? -newYPosition : newYPosition;
     }

@@ -47,27 +47,26 @@ public class Play_HoldBody : MonoBehaviour
 
     private float CalcHeight()
     {
-        if (gameManager.curTick >= Note.EndTime.CurTime())
+        float curTick = gameManager.curTick;
+        if (curTick >= Note.EndTime.CurTime())
         {
             Destroy(gameObject);
             return 0;
         }
-
-        float startPosition;
         // 如果音符已经被击打，使用当前时间作为开始位置
-        startPosition = _isHolding
-            ? fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(gameManager.curTick)
+        float startPosition = _isHolding
+            ? fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(curTick)
             : Note.FloorPosition;
 
         var clickStartFloorPosition =
         (
-            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(gameManager.curTick) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(curTick) -
             startPosition
         );
 
         var clickEndFloorPosition =
         (
-            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(gameManager.curTick) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(curTick) -
             fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(Note.EndTime.CurTime())
         );
 
@@ -83,7 +82,7 @@ public class Play_HoldBody : MonoBehaviour
         }
 
         var fp = fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(gameManager.curTick) - Note.FloorPosition;
-        var newYPosition = fp - 12 + spriteHeight / 2;
-        return Note.Above == 1 ? (float)-newYPosition : (float)newYPosition;
+        var newYPosition = fp + spriteHeight / 2;
+        return Note.Above == 1 ? -newYPosition : newYPosition;
     }
 }

@@ -104,9 +104,9 @@ public class Play_GameManager : MonoBehaviour
 #endif
         
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-            curTick = _musicAudioSource.time * 1000;
+            curTick = _musicAudioSource.time * 1000 - Chart.Meta.Offset;
 #else 
-            curTick = _musicAudioSource.GetPlaybackTime() * 1000;
+            curTick = _musicAudioSource.GetPlaybackTime() * 1000 - Chart.Meta.Offset;
 #endif
             Time.text = curTick.ToString();
         }

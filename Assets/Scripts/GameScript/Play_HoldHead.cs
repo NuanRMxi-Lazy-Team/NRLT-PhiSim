@@ -70,7 +70,7 @@ public class Play_HoldHead : MonoBehaviour
         (
             fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime) -
             Note.FloorPosition
-        ); //* note.speedMultiplier;
+        )+12f; //* note.speedMultiplier;
         float spriteHeight = _noteRenderer.bounds.size.y;
         if (Note.Above == 1)
         {

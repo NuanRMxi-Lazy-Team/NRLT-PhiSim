@@ -56,6 +56,8 @@ public class Main_Button_Click : MonoBehaviour
         instance.GetComponent<MessageBox_Scripts>().showText = "Unsupperted WEBGL...";
         //抛出未实现的功能异常
         throw new NotImplementedException("Unsupperted WEBGL...");
+        //退出
+        Application.Quit();
 #endif
         
 
@@ -124,20 +126,19 @@ public class Main_Button_Click : MonoBehaviour
             //提示选取与加载谱面
             NativeFileSO.shared.OpenFile(SupportedFilePreferences.supportedFileTypes, async (isOpen, file) =>
             {
-                if (isOpen)
-                {
-                    Log.Write(file.Name);
+                if (!isOpen) return;
+                
+                Log.Write(file.Name);
 #if UNITY_EDITOR
-                    var chart = await Chart.ChartConverter(file.Data, "D:\\PhiOfaChart",file.Extension);
-                    ChartCache.Instance.chart = chart;
+                var chart = await Chart.ChartConverter(file.Data, "D:\\PhiOfaChart",file.Extension);
+                ChartCache.Instance.chart = chart;
 #else
                     ChartCache.Instance.chart = await Chart.ChartConverter(file.Data, Path.GetTempPath(),file.Extension);
 #endif
-                    //弹出MessageBox
-                    GameObject parent = GameObject.Find("Main_Panel");
-                    GameObject instance = Instantiate(messageBox, parent.transform);
-                    instance.GetComponent<MessageBox_Scripts>().showText = "Chart loaded successfully!";
-                }
+                //弹出MessageBox
+                GameObject parent = GameObject.Find("Main_Panel");
+                GameObject instance = Instantiate(messageBox, parent.transform);
+                instance.GetComponent<MessageBox_Scripts>().showText = "Chart loaded successfully!";
             });
         }
         catch (Exception e)
@@ -175,7 +176,7 @@ public class Main_Button_Click : MonoBehaviour
         //进入设置界面
         SceneManager.LoadScene(2);
     }
-#if UNITY_ANDROID
+#if UNITY_ANDROID && !(DEBUG || UNITY_STANDALONE_WIN)
     /// <summary>
     /// Android Toast Show
     /// </summary>

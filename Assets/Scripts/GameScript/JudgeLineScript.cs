@@ -3,7 +3,6 @@ using System.Collections;
 using UnityEngine;
 using RePhiEdit;
 using TMPro;
-using LogType = LogWriter.LogType;
 
 public class JudgeLineScript : MonoBehaviour
 {
@@ -25,6 +24,7 @@ public class JudgeLineScript : MonoBehaviour
         lineID.text = whoami.ToString();
         bool debugMode = PlayerPrefs.GetInt("debugMode") == 1;
         lineID.enabled = debugMode;
+        lineID.alpha = 1;
         if (ChartCache.Instance.moveMode == ChartCache.MoveMode.Beta)
         {
             StartCoroutine(EventReader());
@@ -48,7 +48,6 @@ public class JudgeLineScript : MonoBehaviour
             Color color = _lineRenderer.material.color;
             color.a = alpha;
             _lineRenderer.material.color = color;
-            lineID.alpha = alpha;
             yield return null;
         }
     }
