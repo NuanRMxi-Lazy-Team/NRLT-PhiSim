@@ -32,11 +32,9 @@ public class Play_GameManager : MonoBehaviour
     //Tick
     [HideInInspector]
     public float curTick = 0f;
-    //BPM List
-    [HideInInspector]
-    public List<RpeClass.RpeBpm> BpmList;
 
     public TMP_Text Time;
+    public RpeChart Chart;
     
     
     //背景插画
@@ -177,27 +175,26 @@ public class Play_GameManager : MonoBehaviour
         });
         ChartCache.Instance.HitFxs = hitFxs; 
         
-        var chart = ChartCache.Instance.chart;
-        StartCoroutine(MusicPlay(chart.Music, 0));
+        Chart = ChartCache.Instance.chart;
+        StartCoroutine(MusicPlay(Chart.Music, 0));
         
         GameObject canvas = GameObject.Find("Play Canvas");
-        for (int i = 0; i < chart.JudgeLineList.Count; i++)
+        for (int i = 0; i < Chart.JudgeLineList.Count; i++)
         {
             // 生成判定线实例，设置父对象为画布
             GameObject instance = Instantiate(JudgeLine, canvas.transform);
-            BpmList = chart.BpmList;
             // 设置判定线位置到画布顶端且为不可视区域
             instance.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 1000);
             // 获取预制件的脚本组件
             var script = instance.GetComponent<JudgeLineScript>();
             // 设置脚本中的公共变量
-            script.judgeLine = chart.JudgeLineList[i];
+            script.judgeLine = Chart.JudgeLineList[i];
             script.whoami = i;
             script.GameManager = this;
             
             //生成note实例
             List<RpeClass.Note> holdList = new();
-            foreach (var note in chart.JudgeLineList[i].Notes)
+            foreach (var note in Chart.JudgeLineList[i].Notes)
             {
                 GameObject noteGameObject = note.Type switch
                 {

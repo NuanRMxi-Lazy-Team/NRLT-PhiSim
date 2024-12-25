@@ -13,7 +13,7 @@ public class Play_Note : MonoBehaviour
     public JudgeLineScript fatherJudgeLine;
     public Play_GameManager GameManager;
     public HitFx HitFx;
-    
+
     private Renderer noteRenderer;
     private GameObject _canvas;
 
@@ -35,7 +35,7 @@ public class Play_Note : MonoBehaviour
     {
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
         float yPos = CalculateYPosition(
-            note.StartTime.CurTime(GameManager.BpmList),
+            note.StartTime.CurTime(),
             GameManager.curTick);
         noteRectTransform.anchoredPosition = new Vector2(note.PositionX,
             yPos);
@@ -55,7 +55,7 @@ public class Play_Note : MonoBehaviour
             if (note.IsFake == 0)
             {
                 //生成hitFx，恒定不旋转
-                var fxPos = fatherJudgeLine.CalcPositionXY(note.StartTime.CurTime(GameManager.BpmList), note.PositionX);
+                var fxPos = fatherJudgeLine.CalcPositionXY(note.StartTime.CurTime(), note.PositionX);
                 var hitFx = Instantiate(HitFx, new Vector3(), Quaternion.identity);
                 hitFx.gameManager = GameManager;
                 hitFx.hitType = note.Type;
@@ -63,6 +63,7 @@ public class Play_Note : MonoBehaviour
                 hitFx.transform.SetParent(_canvas.transform);
                 hitFx.rectTransform.anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
             }
+
             //摧毁
             Destroy(gameObject);
             return 0;
@@ -73,13 +74,13 @@ public class Play_Note : MonoBehaviour
         // 弃用原直接计算，使用floorPos进行计算。
         float newYPosition =
         (
-            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime,GameManager.BpmList) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime) -
             note.FloorPosition
         ) * note.SpeedMultiplier;
-        
+
         newYPosition = note.Above == 1 ? -newYPosition : newYPosition;
 
-        if (lastTime <= note.EndTime.CurTime(GameManager.BpmList)  && lastTime >= targetTime)
+        if (lastTime <= note.EndTime.CurTime() && lastTime >= targetTime)
         {
             newYPosition = -1200f;
             if (note.Above == 1)
@@ -88,6 +89,7 @@ public class Play_Note : MonoBehaviour
                 newYPosition = 1200f;
             }
         }
+
         return newYPosition;
     }
 }

@@ -1,9 +1,6 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using PhigrosFanmade;
 using RePhiEdit;
 using TMPro;
 using LogType = LogWriter.LogType;
@@ -13,15 +10,14 @@ public class JudgeLineScript : MonoBehaviour
     //获取初始参数
     public RpeClass.JudgeLine judgeLine;
     public Play_GameManager GameManager;
-    
-    
+
+
     //self
-    [HideInInspector]
-    public int whoami = 0;
+    [HideInInspector] public int whoami = 0;
     public RectTransform rectTransform;
     private Renderer _lineRenderer;
     public TMP_Text lineID;
-    
+
     // Start is called before the first frame update
     void Start()
     {
@@ -42,10 +38,11 @@ public class JudgeLineScript : MonoBehaviour
         while (true)
         {
             float curTick = GameManager.curTick;
-            float x = judgeLine.EventLayers.GetXAtTime(curTick,GameManager.BpmList);
-            float y = judgeLine.EventLayers.GetYAtTime(curTick,GameManager.BpmList);
-            float theta = judgeLine.EventLayers.GetAngleAtTime(curTick,GameManager.BpmList);
-            float alpha = judgeLine.EventLayers.GetAlphaAtTime(curTick,GameManager.BpmList);
+            var xy = GameManager.Chart.JudgeLineList.GetLinePosition(whoami, curTick);
+            float x = xy.Item1;
+            float y = xy.Item2;
+            float theta = judgeLine.EventLayers.GetAngleAtTime(curTick);
+            float alpha = judgeLine.EventLayers.GetAlphaAtTime(curTick);
             rectTransform.anchoredPosition = new Vector2(x, y);
             rectTransform.rotation = Quaternion.Euler(0, 0, theta);
             Color color = _lineRenderer.material.color;
@@ -57,19 +54,18 @@ public class JudgeLineScript : MonoBehaviour
     }
 
     #endregion
-    
+
     #region Pos
-    
-    
-    
+
     public Tuple<float, float> CalcPositionXY(float t, float x)
     {
+        var xy = GameManager.Chart.JudgeLineList.GetLinePosition(whoami, t);
         // 获取在时间 t 时刻判定线的 x 位置
-        float xPos = judgeLine.EventLayers.GetXAtTime(t,GameManager.BpmList);
+        float xPos = xy.Item1;
         // 获取在时间 t 时刻判定线的 y 位置
-        float yPos = judgeLine.EventLayers.GetYAtTime(t,GameManager.BpmList);
+        float yPos = xy.Item2;
         // 获取在时间 t 时刻判定线的旋转角度（theta）
-        float theta = judgeLine.EventLayers.GetAngleAtTime(t,GameManager.BpmList);
+        float theta = judgeLine.EventLayers.GetAngleAtTime(t);
 
         // 将角度 theta 转换为弧度
         double radians = theta * Math.PI / 180.0;
@@ -87,6 +83,5 @@ public class JudgeLineScript : MonoBehaviour
         return Tuple.Create(newX, newY);
     }
 
-    
     #endregion
 }

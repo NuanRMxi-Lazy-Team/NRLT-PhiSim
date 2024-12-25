@@ -406,9 +406,9 @@ namespace PhigrosFanmade
                             //读取当前线的BPM
                             float judgeLineBpm = judgeLineList[i]["bpm"];
                             //RPE
-                            if (rpeChart.BpmList.Count == 0)
+                            if (RpeChart.BpmList.Count == 0)
                             {
-                                rpeChart.BpmList.Add(new RpeClass.RpeBpm
+                                RpeChart.BpmList.Add(new RpeClass.RpeBpm
                                 {
                                     Bpm = judgeLineBpm,
                                     StartTime = new RpeClass.Beat()
@@ -528,7 +528,7 @@ namespace PhigrosFanmade
                                 });
                             }
 
-                            rpeEventLayer.SpeedEvents.CalcFloorPosition(rpeChart.BpmList);
+                            rpeEventLayer.SpeedEvents.CalcFloorPosition(RpeChart.BpmList);
                             rpeJudgeLine.EventLayers.Add(rpeEventLayer);
 
                             bool setAbove = true;
@@ -573,7 +573,7 @@ namespace PhigrosFanmade
                                     SpeedMultiplier = noteList[j]["speed"],
                                     Above = setAbove ? 1 : 2,
                                     FloorPosition = rpeJudgeLine.EventLayers.GetCurFloorPosition(
-                                        new RpeClass.Beat(rpeClickBeat).CurTime(rpeChart.BpmList), rpeChart.BpmList)
+                                        new RpeClass.Beat(rpeClickBeat).CurTime())
                                 });
                             }
 
@@ -611,15 +611,14 @@ namespace PhigrosFanmade
                             judgeLine.CoordinateTransformer();
                             foreach (var eventLayer in judgeLine.EventLayers)
                             {
-                                eventLayer.SpeedEvents?.CalcFloorPosition(rpeChart.BpmList);
+                                eventLayer.SpeedEvents?.CalcFloorPosition(RpeChart.BpmList);
                             }
 
                             for (int i = 0; i < judgeLine.Notes.Count; i++)
                             {
                                 var note = judgeLine.Notes[i];
                                 note.FloorPosition =
-                                    judgeLine.EventLayers.GetCurFloorPosition(note.StartTime.CurTime(rpeChart.BpmList),
-                                        rpeChart.BpmList);
+                                    judgeLine.EventLayers.GetCurFloorPosition(note.StartTime.CurTime());
                                 judgeLine.Notes[i] = note;
                             }
                         }

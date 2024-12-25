@@ -16,14 +16,14 @@ namespace RePhiEdit
         {
             BpmList = new List<RpeClass.RpeBpm>();
             Meta = new RpeClass.Meta();
-            JudgeLineList = new List<RpeClass.JudgeLine>();
+            JudgeLineList = new RpeClass.JudgeLineList();
             Illustration = null;
             Music = null;
         }
 
-        [JsonProperty("BPMList")] public List<RpeClass.RpeBpm> BpmList;
+        [JsonProperty("BPMList")] public static List<RpeClass.RpeBpm> BpmList;
         [JsonProperty("META")] public RpeClass.Meta Meta;
-        [JsonProperty("judgeLineList")] public List<RpeClass.JudgeLine> JudgeLineList;
+        [JsonProperty("judgeLineList")] public RpeClass.JudgeLineList JudgeLineList;
 
         // 模拟器私有部分
         [CanBeNull] public Sprite Illustration;
@@ -40,7 +40,7 @@ namespace RePhiEdit
             private readonly int[] _beat;
             private float? _time;
 
-            public Beat(int[] timeArray = null, List<RpeBpm> bpmList = null)
+            public Beat(int[] timeArray = null)
             {
                 _beat = timeArray ?? new[] { 0, 0, 1 };
                 _time = null;
@@ -71,8 +71,9 @@ namespace RePhiEdit
 
             public float CurBeat => (float)this[1] / this[2] + this[0];
 
-            public float CurTime(List<RpeBpm> bpmList)
+            public float CurTime()
             {
+                var bpmList = RpeChart.BpmList;
                 if (_time.HasValue)
                 {
                     return _time.Value;
@@ -147,7 +148,7 @@ namespace RePhiEdit
             public string Texture = "line.png"; // 判定线材质
             [JsonProperty("anchor")] public float[] Anchor = { 0.5f, 0.5f }; // 判定线材质锚点
             [JsonProperty("eventLayers")] public EventLayers EventLayers = new(); // 事件层
-            [JsonProperty("extended")] public Extend Extended = new(); // 扩展事件层
+            [JsonProperty("extended")] public Extend Extended; // 扩展事件层
             [JsonProperty("father")] public int Father = -1; // 父级
             [JsonProperty("isCover")] public int IsCover = 1; // 是否遮罩（1为遮罩，0为不遮罩）
             [JsonProperty("notes")] public List<Note> Notes = new(); // note列表
@@ -216,6 +217,41 @@ namespace RePhiEdit
                 }
             }
         }
+        
+        public class JudgeLineList : List<JudgeLine>
+        {
+            public (float, float) GetLinePosition(int index, float time)
+            {
+                if (this[index].Father != -1)
+                {
+                    int fatherIndex = this[index].Father;
+                    // 获取父线位置
+                    var (fatherX, fatherY) = GetLinePosition(fatherIndex, time);
+        
+                    // 获取当前线相对于父线的偏移量
+                    float offsetX = this[index].EventLayers.GetXAtTime(time);
+                    float offsetY = this[index].EventLayers.GetYAtTime(time);
+        
+                    // 获取父线的角度并转换为弧度
+                    float angleDegrees = this[fatherIndex].EventLayers.GetAngleAtTime(time);
+                    float angleRadians = (((angleDegrees % 360) + 360) % 360) * Mathf.PI / 180f;
+        
+                    // 对偏移量进行旋转
+                    float rotatedOffsetX = (float)(offsetX * Math.Cos(angleRadians) - offsetY * Math.Sin(angleRadians));
+                    float rotatedOffsetY = (float)(offsetX * Math.Sin(angleRadians) + offsetY * Math.Cos(angleRadians));
+        
+                    // 最后加上父线的位置得到最终位置
+                    return (fatherX + rotatedOffsetX, fatherY + rotatedOffsetY);
+                }
+    
+                // 没有父线的情况，直接返回自身的位置
+                return (
+                    this[index].EventLayers.GetXAtTime(time),
+                    this[index].EventLayers.GetYAtTime(time)
+                );
+            }
+
+        }
 
         public struct Extend
         {
@@ -240,21 +276,11 @@ namespace RePhiEdit
         //[JsonConverter(typeof(EventLayerConverter))]
         public class EventLayer
         {
-            // 在构造中初始化，避免空引用
-            public EventLayer()
-            {
-                MoveXEvents = new EventList();
-                MoveYEvents = new EventList();
-                RotateEvents = new EventList();
-                AlphaEvents = new EventList();
-                SpeedEvents = new SpeedEventList();
-            }
-
-            [JsonProperty("moveXEvents")] public EventList MoveXEvents; // 移动事件
-            [JsonProperty("moveYEvents")] public EventList MoveYEvents; // 移动事件
-            [JsonProperty("rotateEvents")] public EventList RotateEvents; // 旋转事件
-            [JsonProperty("alphaEvents")] public EventList AlphaEvents; // 透明度事件
-            [JsonProperty("speedEvents")] public SpeedEventList SpeedEvents; // 速度事件
+            [JsonProperty("moveXEvents")] public EventList MoveXEvents = new(); // 移动事件
+            [JsonProperty("moveYEvents")] public EventList MoveYEvents = new(); // 移动事件
+            [JsonProperty("rotateEvents")] public EventList RotateEvents = new(); // 旋转事件
+            [JsonProperty("alphaEvents")] public EventList AlphaEvents = new(); // 透明度事件
+            [JsonProperty("speedEvents")] public SpeedEventList SpeedEvents = new(); // 速度事件
         }
 
         /// <summary>
@@ -262,20 +288,20 @@ namespace RePhiEdit
         /// </summary>
         public class EventLayers : List<EventLayer>
         {
-            public float GetXAtTime(float t, List<RpeBpm> bpmList) =>
-                this.Sum(eventLayer => eventLayer.MoveXEvents.GetValueAtTime(t, bpmList));
+            public float GetXAtTime(float t) =>
+                this.Sum(eventLayer => eventLayer.MoveXEvents.GetValueAtTime(t));
 
-            public float GetYAtTime(float t, List<RpeBpm> bpmList) =>
-                this.Sum(eventLayer => eventLayer.MoveYEvents.GetValueAtTime(t, bpmList));
+            public float GetYAtTime(float t) =>
+                this.Sum(eventLayer => eventLayer.MoveYEvents.GetValueAtTime(t));
 
-            public float GetAngleAtTime(float t, List<RpeBpm> bpmList) =>
-                this.Sum(eventLayer => eventLayer.RotateEvents.GetValueAtTime(t, bpmList));
+            public float GetAngleAtTime(float t) =>
+                this.Sum(eventLayer => eventLayer.RotateEvents.GetValueAtTime(t));
 
-            public float GetAlphaAtTime(float t, List<RpeBpm> bpmList) =>
-                this.Sum(eventLayer => eventLayer.AlphaEvents.GetValueAtTime(t, bpmList));
+            public float GetAlphaAtTime(float t) =>
+                this.Sum(eventLayer => eventLayer.AlphaEvents.GetValueAtTime(t));
 
-            public float GetCurFloorPosition(float t, List<RpeBpm> bpmList) =>
-                this.Sum(eventLayer => eventLayer.SpeedEvents.GetCurTimeSu(t, bpmList));
+            public float GetCurFloorPosition(float t) =>
+                this.Sum(eventLayer => eventLayer.SpeedEvents.GetCurTimeSu(t));
         }
 
 
@@ -291,13 +317,13 @@ namespace RePhiEdit
             [JsonProperty("easingType")] public int EasingType = 1; // 缓动类型
             [JsonProperty("start")] public float Start; // 开始值
             [JsonProperty("end")] public float End; // 结束值
-            [JsonProperty("startTime")] public Beat StartTime = new(); // 开始时间
-            [JsonProperty("endTime")] public Beat EndTime = new(); // 结束时间
+            [JsonProperty("startTime")] public Beat StartTime; // 开始时间
+            [JsonProperty("endTime")] public Beat EndTime; // 结束时间
 
-            public float GetValueAtTime(float time, List<RpeBpm> bpmList)
+            public float GetValueAtTime(float time)
             {
-                float startTime = StartTime.CurTime(bpmList);
-                float endTime = EndTime.CurTime(bpmList);
+                float startTime = StartTime.CurTime();
+                float endTime = EndTime.CurTime();
                 //获得这个拍在这个事件的时间轴上的位置
                 float t = (time - startTime) / (endTime - startTime);
                 //获得当前拍的值
@@ -309,26 +335,26 @@ namespace RePhiEdit
 
         public class EventList : List<Event>
         {
-            private int _lastIndex = 0;
+            private int _lastIndex;
 
-            public float GetValueAtTime(float t, List<RpeBpm> bpmList)
+            public float GetValueAtTime(float t)
             {
-                for (int i = _lastIndex; i < this.Count; i++)
+                for (int i = _lastIndex; i < Count; i++)
                 {
                     var e = this[i];
-                    if (t >= e.StartTime.CurTime(bpmList) && t <= e.EndTime.CurTime(bpmList))
+                    if (t >= e.StartTime.CurTime() && t <= e.EndTime.CurTime())
                     {
                         _lastIndex = i;
-                        return e.GetValueAtTime(t, bpmList);
+                        return e.GetValueAtTime(t);
                     }
 
-                    if (t < e.StartTime.CurTime(bpmList))
+                    if (t < e.StartTime.CurTime())
                     {
                         break;
                     }
                 }
 
-                var previousEvent = this.FindLast(e => t > e.EndTime.CurTime(bpmList));
+                var previousEvent = FindLast(e => t > e.EndTime.CurTime());
                 return previousEvent?.End ?? 0;
             }
         }
@@ -353,10 +379,10 @@ namespace RePhiEdit
                     if (i == Count - 1) break;
                     var curEvent = this[i + 1];
 
-                    float lastStartTime = lastEvent.StartTime.CurTime(bpmList);
-                    float lastEndTime = lastEvent.EndTime.CurTime(bpmList);
+                    float lastStartTime = lastEvent.StartTime.CurTime();
+                    float lastEndTime = lastEvent.EndTime.CurTime();
 
-                    float curStartTime = curEvent.StartTime.CurTime(bpmList);
+                    float curStartTime = curEvent.StartTime.CurTime();
 
 
                     curEvent.FloorPosition +=
@@ -370,24 +396,23 @@ namespace RePhiEdit
             /// 获取当前时间的速度积分，计算Note和当前时间的floorPosition的主要方法
             /// </summary>
             /// <param name="time">当前时间，单位毫秒</param>
-            /// <param name="bpmList">BPM列表</param>
             /// <returns>从谱面开始到当前时间的总路程</returns>
-            public float GetCurTimeSu(float time, List<RpeBpm> bpmList)
+            public float GetCurTimeSu(float time)
             {
                 var floorPosition = 0.0f;
                 foreach (SpeedEvent speedEvent in this)
                 {
-                    var startTime = speedEvent.StartTime.CurTime(bpmList);
-                    var endTime = speedEvent.EndTime.CurTime(bpmList);
+                    var startTime = speedEvent.StartTime.CurTime();
+                    var endTime = speedEvent.EndTime.CurTime();
 
                     var i = IndexOf(speedEvent);
-                    if (Mathf.Abs(time - speedEvent.StartTime.CurTime(bpmList)) < 1e-5)
+                    if (Mathf.Abs(time - speedEvent.StartTime.CurTime()) < 1e-5)
                     {
                         floorPosition += speedEvent.FloorPosition;
                         break;
                     }
 
-                    if (time <= speedEvent.EndTime.CurTime(bpmList))
+                    if (time <= speedEvent.EndTime.CurTime())
                     {
                         floorPosition += speedEvent.FloorPosition +
                                          (speedEvent.Start + (speedEvent.End - speedEvent.Start) *
@@ -396,7 +421,7 @@ namespace RePhiEdit
                         break;
                     }
 
-                    if (Count - 1 != i && !(time <= this[i + 1].StartTime.CurTime(bpmList))) continue;
+                    if (Count - 1 != i && !(time <= this[i + 1].StartTime.CurTime())) continue;
                     floorPosition += speedEvent.FloorPosition +
                                      (speedEvent.End + speedEvent.Start) * (endTime - startTime) / 2 +
                                      speedEvent.End * (time - endTime) / 1;
@@ -506,6 +531,4 @@ namespace RePhiEdit
             writer.WriteEndArray();
         }
     }
-
-    
 }

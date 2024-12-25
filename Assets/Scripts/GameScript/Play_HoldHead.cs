@@ -4,13 +4,12 @@ using UnityEngine;
 
 public class Play_HoldHead : MonoBehaviour
 {
-    [HideInInspector]
-    public RpeClass.Note Note;
+    [HideInInspector] public RpeClass.Note Note;
     public RectTransform noteRectTransform;
     public JudgeLineScript fatherJudgeLine;
     public Play_GameManager gameManager;
     public HitFx hitFx;
-    
+
     private Renderer _noteRenderer;
     private GameObject _canvas;
 
@@ -29,10 +28,9 @@ public class Play_HoldHead : MonoBehaviour
 
     private void Update()
     {
-
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
         float yPos = CalculateYPosition(
-            Note.StartTime.CurTime(gameManager.BpmList),
+            Note.StartTime.CurTime(),
             gameManager.curTick);
         noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,
             yPos);
@@ -51,14 +49,15 @@ public class Play_HoldHead : MonoBehaviour
             if (Note.IsFake == 0)
             {
                 //生成hitFx，恒定不旋转
-                var fxPos = fatherJudgeLine.CalcPositionXY(Note.StartTime.CurTime(gameManager.BpmList),Note.PositionX);
-                var hitFx = Instantiate(this.hitFx, new Vector3(fxPos.Item1,fxPos.Item2), Quaternion.identity);
+                var fxPos = fatherJudgeLine.CalcPositionXY(Note.StartTime.CurTime(), Note.PositionX);
+                var hitFx = Instantiate(this.hitFx, new Vector3(fxPos.Item1, fxPos.Item2), Quaternion.identity);
                 hitFx.hitType = Note.Type;
                 hitFx.gameManager = gameManager;
                 //设置父对象为Canvas
                 hitFx.transform.SetParent(_canvas.transform);
                 hitFx.rectTransform.anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
             }
+
             //摧毁
             Destroy(gameObject);
             return 0;
@@ -69,9 +68,9 @@ public class Play_HoldHead : MonoBehaviour
         //弃用原直接计算，使用floorPos进行计算。
         float newYPosition =
         (
-            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime,gameManager.BpmList) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime) -
             Note.FloorPosition
-        );//* note.speedMultiplier;
+        ); //* note.speedMultiplier;
         float spriteHeight = _noteRenderer.bounds.size.y;
         if (Note.Above == 1)
         {
@@ -79,6 +78,7 @@ public class Play_HoldHead : MonoBehaviour
             //获得自己的sprite高度
             return -newYPosition + spriteHeight / 2;
         }
+
         return newYPosition - spriteHeight / 2;
     }
 }

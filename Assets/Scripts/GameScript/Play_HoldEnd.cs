@@ -9,10 +9,11 @@ public class Play_HoldEnd : MonoBehaviour
     public JudgeLineScript fatherJudgeLine;
     [FormerlySerializedAs("GameManager")] public Play_GameManager gameManager;
     private Renderer noteRenderer;
+
     private void Start()
     {
         noteRenderer = gameObject.GetComponent<Renderer>();
-        
+
         noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
         if (note.Above == 2)
         {
@@ -26,21 +27,21 @@ public class Play_HoldEnd : MonoBehaviour
         //计算Y位置
         float yPos = CalcYPos();
         noteRectTransform.anchoredPosition = new Vector2(note.PositionX, yPos);
-        if (gameManager.curTick >= note.EndTime.CurTime(gameManager.BpmList))
+        if (gameManager.curTick >= note.EndTime.CurTime())
         {
             Destroy(gameObject);
         }
     }
-    
-    
+
+
     private float CalcYPos()
     {
         var newYPosition =
         (
-            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(gameManager.curTick, gameManager.BpmList) -
-            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(note.EndTime.CurTime(gameManager.BpmList), gameManager.BpmList)
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(gameManager.curTick) -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(note.EndTime.CurTime())
         );
-        
+
         return note.Above == 1 ? -newYPosition : newYPosition;
     }
 }
