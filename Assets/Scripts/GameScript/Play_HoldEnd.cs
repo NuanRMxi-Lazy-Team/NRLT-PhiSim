@@ -31,6 +31,18 @@ public class Play_HoldEnd : MonoBehaviour
         {
             Destroy(gameObject);
         }
+        if (yPos < 0f && note.Above != 2)
+        {
+            noteRenderer.enabled = fatherJudgeLine.judgeLine.IsCover == 0;
+        }
+        else if (yPos > 0f && note.Above == 2)
+        {
+            noteRenderer.enabled = fatherJudgeLine.judgeLine.IsCover == 0;
+        }
+        else
+        {
+            noteRenderer.enabled = true;
+        }
     }
 
 

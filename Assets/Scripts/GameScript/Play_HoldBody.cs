@@ -21,11 +21,10 @@ public class Play_HoldBody : MonoBehaviour
         _spriteRenderer = gameObject.GetComponent<SpriteRenderer>();
 
         noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
-        if (Note.Above == 2)
-        {
-            //翻转自身贴图
-            _noteRenderer.transform.Rotate(0, 0, 180);
-        }
+        if (Note.Above == 1) return;
+        
+        //翻转自身贴图
+        _noteRenderer.transform.Rotate(0, 0, 180);
     }
 
     private void Update()
@@ -43,6 +42,14 @@ public class Play_HoldBody : MonoBehaviour
         //计算Y位置
         float yPos = CalcYPos(height);
         noteRectTransform.anchoredPosition = new Vector2(Note.PositionX, yPos);
+        if (height > 0f)
+        {
+            _noteRenderer.enabled = fatherJudgeLine.judgeLine.IsCover == 0;
+        }
+        else
+        {
+            _noteRenderer.enabled = true;
+        }
     }
 
     private float CalcHeight()

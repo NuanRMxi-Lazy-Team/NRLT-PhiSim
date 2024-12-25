@@ -39,6 +39,18 @@ public class Play_Note : MonoBehaviour
             GameManager.curTick);
         noteRectTransform.anchoredPosition = new Vector2(note.PositionX,
             yPos);
+        if (yPos < 0f && note.Above != 2)
+        {
+            noteRenderer.enabled = fatherJudgeLine.judgeLine.IsCover == 0;
+        }
+        else if (yPos > 0f && note.Above == 2)
+        {
+            noteRenderer.enabled = fatherJudgeLine.judgeLine.IsCover == 0;
+        }
+        else
+        {
+            noteRenderer.enabled = true;
+        }
     }
 
 
