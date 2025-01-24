@@ -202,7 +202,7 @@ namespace PhigrosFanmade
             // 检查返回值
             if (rc != 0)
             {
-                Debug.LogError("FFmpeg error: " + rc);
+                Log.Write("FFmpeg error: " + rc, LogType.Error);
                 return null;
             }
 #else
@@ -260,7 +260,7 @@ namespace PhigrosFanmade
             }
             catch (Exception e)
             {
-                Log.Write(e.ToString(), LogType.Error);
+                Log.Write("在处理曲绘时遇到问题：" + e, LogType.Error);
                 return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
                     new Vector2(0.5f, 0.5f));
             }
@@ -596,16 +596,18 @@ namespace PhigrosFanmade
                         rpeChart.Illustration = _illustrationTemp;
                         return rpeChart;
                     }
-                    else if (jsonChart["formatVersion"] == 1)
+                    if (jsonChart["formatVersion"] == 1)
                     {
                         //第一代Phigros官谱
                         Log.Write("Chart Version is OfficialV1");
                         throw new NotSupportedException("this version is not supported");
                     }
-                    else if (jsonChart["META"] != "" || jsonChart["META"] != null)
+                    if (jsonChart["META"] != "" || jsonChart["META"] != null)
                     {
+                        Main_Button_Click.Enqueue(() => Log.Write("序列化谱面..."));
                         //RPE谱面
                         rpeChart = JsonConvert.DeserializeObject<RpeChart>(rawChart);
+                        Main_Button_Click.Enqueue(() => Log.Write("序列化成功..."));
                         foreach (var judgeLine in rpeChart.JudgeLineList)
                         {
                             judgeLine.CoordinateTransformer();
@@ -623,22 +625,34 @@ namespace PhigrosFanmade
                             }
                         }
 
+                        Main_Button_Click.Enqueue(() => Log.Write("数据整理完成..."));
+
+                        bool musicDone = false;
+                        bool illustrationDone = false;
                         //检查是否被赋值，没有就等待到被赋值
                         while (_musicTemp is null || _illustrationTemp is null)
                         {
+                            if (_musicTemp is not null && !musicDone)
+                            {
+                                musicDone = true;
+                                Main_Button_Click.Enqueue(() => Log.Write("音乐成功加载"));
+                            }
+                            if (_illustrationTemp is not null && !illustrationDone)
+                            {
+                                illustrationDone = true;
+                                Main_Button_Click.Enqueue(() => Log.Write("曲绘成功加载"));
+                            }
                         }
 
                         rpeChart.Music = _musicTemp;
                         rpeChart.Illustration = _illustrationTemp;
+                        Main_Button_Click.Enqueue(() => Log.Write("返回结果！"));
                         return rpeChart;
                     }
-                    else
-                    {
-                        //未知的或不支持的文件
-                        Log.Write(
-                            " The format of this chart may be PhiEdit, but it is not supported and will not be supported in the future");
-                        throw new NotSupportedException("this version is not supported");
-                    }
+                    //未知的或不支持的文件
+                    Log.Write(
+                        " The format of this chart may be PhiEdit, but it is not supported and will not be supported in the future");
+                    throw new NotSupportedException("this version is not supported");
                 }
                 catch (Exception ex)
                 {

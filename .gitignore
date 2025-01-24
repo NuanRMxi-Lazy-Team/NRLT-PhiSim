@@ -75,3 +75,5 @@ ChartFileCache
 /Assets/Resources/HitFx/*
 /Assets/Resources/Audio/*
 /Assets/Texture/*
+.plastic
+ignore.conf

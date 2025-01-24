@@ -30,7 +30,7 @@ public class Play_HoldBody : MonoBehaviour
     private void Update()
     {
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
-        float height = CalcHeight();
+        var height = CalcHeight();
         if (gameManager.curTick >= Note.StartTime.CurTime())
         {
             _isHolding = true;
@@ -54,14 +54,14 @@ public class Play_HoldBody : MonoBehaviour
 
     private float CalcHeight()
     {
-        float curTick = gameManager.curTick;
+        var curTick = gameManager.curTick;
         if (curTick >= Note.EndTime.CurTime())
         {
             Destroy(gameObject);
             return 0;
         }
         // 如果音符已经被击打，使用当前时间作为开始位置
-        float startPosition = _isHolding
+        var startPosition = _isHolding
             ? fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(curTick)
             : Note.FloorPosition;
 

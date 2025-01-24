@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
+using System.Threading;
 using UnityEngine;
 using RePhiEdit;
 using TMPro;
@@ -17,17 +19,34 @@ public class JudgeLineScript : MonoBehaviour
     private Renderer _lineRenderer;
     public TMP_Text lineID;
 
+    private readonly ConcurrentQueue<Action> ExecutionQueue = new();
+
+    public void Enqueue(Action action)
+    {
+        if (action == null)
+            throw new ArgumentNullException(nameof(action));
+        ExecutionQueue.Enqueue(action);
+    }
+
     // Start is called before the first frame update
     void Start()
     {
         _lineRenderer = GetComponent<Renderer>();
         lineID.text = whoami.ToString();
         bool debugMode = PlayerPrefs.GetInt("debugMode") == 1;
+        gameObject.GetComponent<SpriteRenderer>().maskInteraction =
+            debugMode ? SpriteMaskInteraction.None : SpriteMaskInteraction.VisibleInsideMask;
+        
         lineID.enabled = debugMode;
         lineID.alpha = 1;
         if (ChartCache.Instance.moveMode == ChartCache.MoveMode.Beta)
         {
             StartCoroutine(EventReader());
+        }
+        else if (ChartCache.Instance.moveMode == ChartCache.MoveMode.WhatTheFuck)
+        {
+            StartCoroutine(ThreadStarter());
+            StartCoroutine(FrameUpdate());
         }
     }
 
@@ -48,6 +67,66 @@ public class JudgeLineScript : MonoBehaviour
             Color color = _lineRenderer.material.color;
             color.a = alpha;
             _lineRenderer.material.color = color;
+            yield return null;
+        }
+    }
+
+    #endregion
+
+    #region WTF
+
+    private void ThreadUpdate()
+    {
+        float curTick = GameManager.curTick;
+
+        var xy = GameManager.Chart.JudgeLineList.GetLinePosition(whoami, curTick);
+        float posX = xy.Item1;
+        float posY = xy.Item2;
+        float posTheta = judgeLine.EventLayers.GetAngleAtTime(curTick);
+        float alpha = judgeLine.EventLayers.GetAlphaAtTime(curTick);
+        Enqueue(() =>
+        {
+            rectTransform.anchoredPosition = new Vector2(posX, posY);
+            rectTransform.rotation = Quaternion.Euler(0, 0, posTheta);
+            Color color = _lineRenderer.material.color;
+            color.a = alpha;
+            _lineRenderer.material.color = color;
+        });
+    }
+
+    // 帧刷新
+    private IEnumerator FrameUpdate()
+    {
+        while (true)
+        {
+            // 执行队列中的操作
+            while (ExecutionQueue.TryDequeue(out var action))
+            {
+                action?.Invoke();
+            }
+
+            yield return null;
+        }
+
+        /*
+        while (true)
+        {
+            rectTransform.anchoredPosition = new Vector2(_posX, _posY);
+            rectTransform.rotation = Quaternion.Euler(0, 0, _posTheta);
+            Color color = _lineRenderer.material.color;
+            color.a = _alpha;
+            _lineRenderer.material.color = color;
+            yield return null;
+        }
+        */
+    }
+
+    private IEnumerator ThreadStarter()
+    {
+        while (true)
+        {
+            Thread thread = new Thread(ThreadUpdate);
+            thread.Start();
             yield return null;
         }
     }

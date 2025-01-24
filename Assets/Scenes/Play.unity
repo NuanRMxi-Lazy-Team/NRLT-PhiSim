@@ -243,9 +243,13 @@ MonoBehaviour:
   TapNote: {fileID: 8273109670679744420, guid: 3c66066ce6b53b240b6056dd89706c0c, type: 3}
   DragNote: {fileID: 3992759167612515443, guid: 6b516158aaf13304ca8f6d47c714574b, type: 3}
   FlickNote: {fileID: 4114432396750234189, guid: daa21df3d54909245bd9f67edbdead39, type: 3}
+  HoldNote: {fileID: 8273109670679744420, guid: 6885a4b3fecd1ad46969847fe0f9ac53, type: 3}
   HoldHead: {fileID: 2393761737167225995, guid: ff2f8ae79213bdb45bbb376d0807d6ee, type: 3}
   HoldBody: {fileID: 9063193623136043524, guid: f4ebd09e14613a64f89150924f200b4a, type: 3}
   HoldEnd: {fileID: 5697391042189296618, guid: e9fa3db042aa22041b5b604bcc39cf3b, type: 3}
+  tapAudioClip: {fileID: 0}
+  dragAudioClip: {fileID: 0}
+  flickAudioClip: {fileID: 0}
   curTick: 0
   Time: {fileID: 1828669477}
   Illistration: {fileID: 1424897409}

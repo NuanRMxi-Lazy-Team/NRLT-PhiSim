@@ -19,6 +19,7 @@ public class Play_GameManager : MonoBehaviour
     public GameObject TapNote;
     public GameObject DragNote;
     public GameObject FlickNote;
+    public GameObject HoldNote;
     
     public GameObject HoldHead;
     public GameObject HoldBody;
@@ -75,6 +76,10 @@ public class Play_GameManager : MonoBehaviour
             DrawScene();
             // 应用插画
             Illistration.GetComponent<SpriteRenderer>().sprite = ChartCache.Instance.chart.Illustration;
+            
+            // 插画遮罩调试
+            bool debugMode = PlayerPrefs.GetInt("debugMode") == 1;
+            Illistration.GetComponent<SpriteMask>().enabled = !debugMode;
         }
         else
         {
@@ -99,8 +104,6 @@ public class Play_GameManager : MonoBehaviour
             //Tick
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
             if (_musicAudioSource is not null && !_musicAudioSource.isPlaying) return;
-#elif UNITY_ANDROID || UNITY_IOS
-            Log.Write((_musicAudioSource == null).ToString(),LogType.Debug);
 #endif
         
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
@@ -139,7 +142,6 @@ public class Play_GameManager : MonoBehaviour
 #elif UNITY_ANDROID || UNITY_IOS
     IEnumerator MusicPlay(AudioClip music, double time)
     {
-        NativeAudio.Initialize();
         //预加载音乐
         NativeAudioPointer audioPointer = NativeAudio.Load(music);
         _musicAudioSource = new NativeSource();
@@ -176,6 +178,10 @@ public class Play_GameManager : MonoBehaviour
         ChartCache.Instance.HitFxs = hitFxs; 
         
         Chart = ChartCache.Instance.chart;
+        // 试图同时播放三个audio在Native Audio上
+        PlayHitSound(2);
+        PlayHitSound(3);
+        PlayHitSound(4);
         StartCoroutine(MusicPlay(Chart.Music, 0));
         
         GameObject canvas = GameObject.Find("Play Canvas");
@@ -222,6 +228,14 @@ public class Play_GameManager : MonoBehaviour
             //生成Hold
             foreach (var hold in holdList)
             {
+                
+                var head = Instantiate(HoldNote,instance.GetComponent<RectTransform>());
+                head.GetComponent<Play_Hold>().fatherJudgeLine = script;
+                head.GetComponent<Play_Hold>().Note = hold;
+                head.GetComponent<Play_Hold>().gameManager = this;
+                
+                
+                /*
                 var head = Instantiate(HoldHead,instance.GetComponent<RectTransform>());
                 head.GetComponent<Play_HoldHead>().fatherJudgeLine = script;
                 head.GetComponent<Play_HoldHead>().Note = hold;
@@ -236,6 +250,7 @@ public class Play_GameManager : MonoBehaviour
                 end.GetComponent<Play_HoldEnd>().fatherJudgeLine = script;
                 end.GetComponent<Play_HoldEnd>().note = hold;
                 end.GetComponent<Play_HoldEnd>().gameManager = this;
+                */
             }
             
         }
@@ -291,7 +306,7 @@ public class Play_GameManager : MonoBehaviour
             4 => dragAudioClip,
             _ => tapAudioClip
         };
-#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+#if UNITY_EDITOR || UNITY_STANDALONE_WIN
         hitAudioSource.clip = hitAudioClip;
         hitAudioSource.loop = false;
         hitAudioSource.Play();

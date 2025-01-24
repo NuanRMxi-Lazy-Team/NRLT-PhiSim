@@ -12,6 +12,7 @@ using RePhiEdit;
 #if UNITY_ANDROID
 using UnityEngine.Android;
 using System.IO;
+using E7.Native;
 #endif
 
 public class Main_Button_Click : MonoBehaviour
@@ -21,9 +22,9 @@ public class Main_Button_Click : MonoBehaviour
     void Start()
     {
         #region 权限相关
-#if !UNITY_EDITOR_WIN
+#if UNITY_EDITOR_WIN
         Log.Write("Start On UNITY_EDITOR.", LogType.Debug);
-#elif !UNITY_ANDROID
+#elif UNITY_ANDROID
         Log.Write("Start On UNITY_ANDROID.", LogType.Debug);
         //获取权限
         Apply_for_read_permission:
@@ -45,6 +46,12 @@ public class Main_Button_Click : MonoBehaviour
         //Application.OpenURL("package:" + Application.identifier);
         //弹出Toast
         ShowToast(LocalizationSettings.StringDatabase.GetLocalizedString("Languages", "Android_Permission_Prompt"));
+        if (!NativeAudio.Initialized)
+        {
+            NativeAudio.Initialize();
+            Log.Write("Native Audio初始化成功", LogType.Info);
+        }
+        
 
 #elif UNITY_STANDALONE_WIN
         Log.Write("Start On UNITY_STANDALONE_WIN.", LogType.Debug);
@@ -176,7 +183,7 @@ public class Main_Button_Click : MonoBehaviour
         //进入设置界面
         SceneManager.LoadScene(2);
     }
-#if UNITY_ANDROID && !(DEBUG || UNITY_STANDALONE_WIN)
+#if UNITY_ANDROID && !UNITY_STANDALONE_WIN
     /// <summary>
     /// Android Toast Show
     /// </summary>

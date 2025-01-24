@@ -28,6 +28,10 @@ public class Play_Note : MonoBehaviour
             //翻转自身贴图
             noteRenderer.transform.Rotate(0, 0, 180);
         }
+        // 遮罩交互调试
+        bool debugMode = PlayerPrefs.GetInt("debugMode") == 1;
+        gameObject.GetComponent<SpriteRenderer>().maskInteraction =
+            debugMode ? SpriteMaskInteraction.None : SpriteMaskInteraction.VisibleInsideMask;
     }
 
     // Update is called once per frame
@@ -39,18 +43,8 @@ public class Play_Note : MonoBehaviour
             GameManager.curTick);
         noteRectTransform.anchoredPosition = new Vector2(note.PositionX,
             yPos);
-        if (yPos < 0f && note.Above != 2)
-        {
-            noteRenderer.enabled = fatherJudgeLine.judgeLine.IsCover == 0;
-        }
-        else if (yPos > 0f && note.Above == 2)
-        {
-            noteRenderer.enabled = fatherJudgeLine.judgeLine.IsCover == 0;
-        }
-        else
-        {
-            noteRenderer.enabled = true;
-        }
+        
+        noteRenderer.enabled = !((yPos < 0f && note.Above != 2) || (yPos > 0f && note.Above == 2)) || fatherJudgeLine.judgeLine.IsCover == 0;
     }
 
 
