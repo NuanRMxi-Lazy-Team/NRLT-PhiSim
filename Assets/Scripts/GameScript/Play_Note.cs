@@ -23,7 +23,7 @@ public class Play_Note : MonoBehaviour
         noteRenderer = gameObject.GetComponent<Renderer>();
         noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
         _canvas = GameObject.Find("Play Canvas");
-        if (note.Above == 2)
+        if (note.Above != 1)
         {
             //翻转自身贴图
             noteRenderer.transform.Rotate(0, 0, 180);

@@ -33,12 +33,10 @@ public class Play_Hold : MonoBehaviour
     {
         // 使得noteRectTransform的旋转和fatherJudgeLine的旋转一致
         noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
-        if (Note.Above == 2)
+        if (Note.Above != 1)
         {
             //翻转三个GameObject的贴图
-            head.transform.Rotate(0, 0, 180);
-            body.transform.Rotate(0, 0, 180);
-            end.transform.Rotate(0, 0, 180);
+            noteRectTransform.localScale = new Vector3(1f, -1f, 1f);
         }
         _canvas = GameObject.Find("Play Canvas");
         
@@ -67,18 +65,34 @@ public class Play_Hold : MonoBehaviour
         if (!_isHolding)
         {
             // 设置note整体位置
-            noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,yPos + height / 2f);
+            if (Note.Above != 1)
+            {
+                noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,yPos - height / 2f);
+            }
+            else
+            {
+                noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,yPos + height / 2f);
+            }
+            
         }
         else
         {
-            noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,yPos - 6f + height / 2f );
+            if (Note.Above != 1)
+            {
+                noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,yPos + 6f - height / 2f);
+            }
+            else
+            {
+                noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,yPos - 6f + height / 2f );
+            }
         }
         // 设置note尾位置
-        endRectTransform.anchoredPosition = new Vector2(0, height / 2f);
+        endRectTransform.anchoredPosition = new Vector2(0, Mathf.Abs(height / 2f));
         // 如果没有在被打击，那么更新note头位置信息，防止Null
-        if (!_isHolding) headRectTransform.anchoredPosition = new Vector2(0, -height / 2f);
+        if (!_isHolding) headRectTransform.anchoredPosition = new Vector2(0, -Mathf.Abs(height / 2f));
         
-        bool isEnabled = (yPos < 0f && Note.Above != 2) || (yPos > 0f && Note.Above == 2) || (height >= 0f) || fatherJudgeLine.judgeLine.IsCover == 0;
+        // 遮罩行为
+        var isEnabled = (yPos < 0f && Note.Above != 2) || (yPos > 0f && Note.Above == 2) || (height >= 0f) || fatherJudgeLine.judgeLine.IsCover == 0;
         if(!_isHolding) _headRenderer.enabled = isEnabled;
         _bodyRenderer.enabled = isEnabled;
         _endRenderer.enabled = isEnabled;
@@ -124,11 +138,11 @@ public class Play_Hold : MonoBehaviour
         var startPosition = _isHolding
             ? Note.FloorPosition
             : fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime);
-        
+
         float newYPosition =
         (
             startPosition - Note.FloorPosition
-        ) * Note.SpeedMultiplier;
+        ); //* Note.SpeedMultiplier;
         
 
         newYPosition = Note.Above == 1 ? -newYPosition : newYPosition;
