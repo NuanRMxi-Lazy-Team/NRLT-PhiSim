@@ -8,25 +8,28 @@ using UnityEngine.Serialization;
 public class Play_Note : MonoBehaviour
 {
     //获取初始参数
-    public RpeClass.Note note;
+    [HideInInspector]
+    public RpeClass.Note Note;
     public RectTransform noteRectTransform;
+    [HideInInspector]
     public JudgeLineScript fatherJudgeLine;
-    public Play_GameManager GameManager;
-    public HitFx HitFx;
+    [HideInInspector]
+    public Play_GameManager gameManager;
+    [FormerlySerializedAs("HitFx")] public HitFx hitFx;
 
-    private Renderer noteRenderer;
+    private Renderer _noteRenderer;
     private GameObject _canvas;
 
     // Start is called before the first frame update
     private void Start()
     {
-        noteRenderer = gameObject.GetComponent<Renderer>();
+        _noteRenderer = gameObject.GetComponent<Renderer>();
         noteRectTransform.transform.rotation = fatherJudgeLine.rectTransform.rotation;
         _canvas = GameObject.Find("Play Canvas");
-        if (note.Above != 1)
+        if (Note.Above != 1)
         {
             //翻转自身贴图
-            noteRenderer.transform.Rotate(0, 0, 180);
+            _noteRenderer.transform.Rotate(0, 0, 180);
         }
         // 遮罩交互调试
         bool debugMode = PlayerPrefs.GetInt("debugMode") == 1;
@@ -39,12 +42,15 @@ public class Play_Note : MonoBehaviour
     {
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
         float yPos = CalculateYPosition(
-            note.StartTime.CurTime(),
-            GameManager.curTick);
-        noteRectTransform.anchoredPosition = new Vector2(note.PositionX,
+            Note.StartTime.CurTime(),
+            gameManager.curTick);
+        noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,
             yPos);
         
-        noteRenderer.enabled = !((yPos < 0f && note.Above != 2) || (yPos > 0f && note.Above == 2)) || fatherJudgeLine.judgeLine.IsCover == 0;
+        _noteRenderer.enabled = ((yPos < 0f && Note.Above != 1) || 
+                                (yPos > 0f && Note.Above == 1) || 
+                                fatherJudgeLine.judgeLine.IsCover == 0) && 
+                                fatherJudgeLine.alpha >= 0;
     }
 
 
@@ -58,13 +64,13 @@ public class Play_Note : MonoBehaviour
     {
         if (lastTime >= targetTime)
         {
-            if (note.IsFake == 0)
+            if (Note.IsFake == 0)
             {
                 //生成hitFx，恒定不旋转
-                var fxPos = fatherJudgeLine.CalcPositionXY(note.StartTime.CurTime(), note.PositionX);
-                var hitFx = Instantiate(HitFx, new Vector3(), Quaternion.identity);
-                hitFx.gameManager = GameManager;
-                hitFx.hitType = note.Type;
+                var fxPos = fatherJudgeLine.CalcPositionXY(Note.StartTime.CurTime(), Note.PositionX);
+                var hitFx = Instantiate(this.hitFx, new Vector3(), Quaternion.identity);
+                hitFx.gameManager = gameManager;
+                hitFx.hitType = Note.Type;
                 //设置父对象为Canvas
                 hitFx.transform.SetParent(_canvas.transform);
                 hitFx.rectTransform.anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
@@ -81,15 +87,15 @@ public class Play_Note : MonoBehaviour
         float newYPosition =
         (
             fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime) -
-            note.FloorPosition
-        ) * note.SpeedMultiplier;
+            Note.FloorPosition
+        ) * Note.SpeedMultiplier;
 
-        newYPosition = note.Above == 1 ? -newYPosition : newYPosition;
+        newYPosition = Note.Above == 1 ? -newYPosition : newYPosition;
 
-        if (lastTime <= note.EndTime.CurTime() && lastTime >= targetTime)
+        if (lastTime <= Note.EndTime.CurTime() && lastTime >= targetTime)
         {
             newYPosition = -1200f;
-            if (note.Above == 1)
+            if (Note.Above == 1)
             {
                 //翻转y坐标
                 newYPosition = 1200f;

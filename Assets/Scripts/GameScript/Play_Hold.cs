@@ -7,27 +7,25 @@ public class Play_Hold : MonoBehaviour
     public GameObject head;
     public GameObject body;
     public GameObject end;
-    
+
     // 初始化的时候应该有的一些东西
     public RpeClass.Note Note;
-    [HideInInspector]
-    public Play_GameManager gameManager;
+    [HideInInspector] public Play_GameManager gameManager;
     public RectTransform noteRectTransform;
     public RectTransform headRectTransform;
     public RectTransform bodyRectTransform;
     public RectTransform endRectTransform;
-    [HideInInspector]
-    public JudgeLineScript fatherJudgeLine;
-    
+    [HideInInspector] public JudgeLineScript fatherJudgeLine;
+
     public HitFx HitFx;
     private GameObject _canvas;
-    
+
     private bool _isHolding;
-    
+
     private Renderer _headRenderer;
     private Renderer _bodyRenderer;
     private Renderer _endRenderer;
-    
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -38,8 +36,9 @@ public class Play_Hold : MonoBehaviour
             //翻转三个GameObject的贴图
             noteRectTransform.localScale = new Vector3(1f, -1f, 1f);
         }
+
         _canvas = GameObject.Find("Play Canvas");
-        
+
         bool debugMode = PlayerPrefs.GetInt("debugMode") == 1;
         head.GetComponent<SpriteRenderer>().maskInteraction =
             debugMode ? SpriteMaskInteraction.None : SpriteMaskInteraction.VisibleInsideMask;
@@ -59,46 +58,41 @@ public class Play_Hold : MonoBehaviour
         float yPos = CalculateYPosition(Note.StartTime.CurTime(), gameManager.curTick);
         float height = -CalcHeight();
 
-        
+
         // 修改Body的高度
-        body.GetComponent<SpriteRenderer>().size = new Vector2(body.GetComponent<SpriteRenderer>().size.x, height - 12f);
+        body.GetComponent<SpriteRenderer>().size =
+            new Vector2(body.GetComponent<SpriteRenderer>().size.x, height - 12f);
         if (!_isHolding)
         {
             // 设置note整体位置
-            if (Note.Above != 1)
-            {
-                noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,yPos - height / 2f);
-            }
-            else
-            {
-                noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,yPos + height / 2f);
-            }
-            
+            noteRectTransform.anchoredPosition = Note.Above != 1
+                ? new Vector2(Note.PositionX, yPos - height / 2f)
+                : new Vector2(Note.PositionX, yPos + height / 2f);
         }
         else
         {
-            if (Note.Above != 1)
-            {
-                noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,yPos + 6f - height / 2f);
-            }
-            else
-            {
-                noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,yPos - 6f + height / 2f );
-            }
+            noteRectTransform.anchoredPosition = Note.Above != 1
+                ? new Vector2(Note.PositionX, yPos + 6f - height / 2f)
+                : new Vector2(Note.PositionX, yPos - 6f + height / 2f);
         }
+
         // 设置note尾位置
         endRectTransform.anchoredPosition = new Vector2(0, Mathf.Abs(height / 2f));
         // 如果没有在被打击，那么更新note头位置信息，防止Null
         if (!_isHolding) headRectTransform.anchoredPosition = new Vector2(0, -Mathf.Abs(height / 2f));
-        
+
         // 遮罩行为
-        var isEnabled = (yPos < 0f && Note.Above != 2) || (yPos > 0f && Note.Above == 2) || (height >= 0f) || fatherJudgeLine.judgeLine.IsCover == 0;
-        if(!_isHolding) _headRenderer.enabled = isEnabled;
+        var isEnabled = ((yPos < 0f && Note.Above != 1) || 
+                         (yPos > 0f && Note.Above == 1) || 
+                         height >= 0f || 
+                         fatherJudgeLine.judgeLine.IsCover == 0) && 
+                        fatherJudgeLine.alpha >= 0;
+        
+        if (!_isHolding) _headRenderer.enabled = isEnabled;
         _bodyRenderer.enabled = isEnabled;
         _endRenderer.enabled = isEnabled;
-
     }
-    
+
     /// <summary>
     /// 计算垂直位置
     /// </summary>
@@ -120,6 +114,7 @@ public class Play_Hold : MonoBehaviour
                 hitFx.transform.SetParent(_canvas.transform);
                 hitFx.rectTransform.anchoredPosition = new Vector2(fxPos.Item1, fxPos.Item2);
             }
+
             _isHolding = true;
             Destroy(head);
         }
@@ -128,7 +123,7 @@ public class Play_Hold : MonoBehaviour
         {
             //摧毁
             Destroy(gameObject);
-            return 0;    
+            return 0;
         }
 
         // 根据速度（像素/秒）计算y坐标
@@ -143,13 +138,13 @@ public class Play_Hold : MonoBehaviour
         (
             startPosition - Note.FloorPosition
         ); //* Note.SpeedMultiplier;
-        
+
 
         newYPosition = Note.Above == 1 ? -newYPosition : newYPosition;
 
         return newYPosition;
     }
-    
+
     private float CalcHeight()
     {
         var curTick = gameManager.curTick;

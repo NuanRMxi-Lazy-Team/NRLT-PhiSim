@@ -294,10 +294,18 @@ namespace PhigrosFanmade
 
                     cacheFileDir += "/ChartFileCache";
                     //清空缓存文件夹
-                    DirectoryInfo di = new(cacheFileDir);
-                    foreach (var file in di.GetFiles())
+                    DirectoryInfo directory = new DirectoryInfo(cacheFileDir);
+
+                    // 删除所有文件
+                    foreach (FileInfo file in directory.GetFiles())
                     {
                         file.Delete();
+                    }
+
+                    // 删除所有子目录
+                    foreach (DirectoryInfo subDirectory in directory.GetDirectories())
+                    {
+                        subDirectory.Delete(true);
                     }
 
                     //检查文件扩展名是否为.zip

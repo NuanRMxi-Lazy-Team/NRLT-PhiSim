@@ -217,8 +217,8 @@ public class Play_GameManager : MonoBehaviour
                 //设置基本参数
                 var playNote = noteGameObject.GetComponent<Play_Note>();
                 playNote.fatherJudgeLine = script;
-                playNote.note = note;
-                playNote.GameManager = this;
+                playNote.Note = note;
+                playNote.gameManager = this;
                 
                 //设置父对象
                 noteGameObject.transform.SetParent(instance.GetComponent<RectTransform>());

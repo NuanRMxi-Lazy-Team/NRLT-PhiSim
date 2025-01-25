@@ -18,6 +18,8 @@ public class JudgeLineScript : MonoBehaviour
     public RectTransform rectTransform;
     private Renderer _lineRenderer;
     public TMP_Text lineID;
+    [HideInInspector]
+    public float alpha;
 
     private readonly ConcurrentQueue<Action> ExecutionQueue = new();
 
@@ -61,7 +63,7 @@ public class JudgeLineScript : MonoBehaviour
             float x = xy.Item1;
             float y = xy.Item2;
             float theta = judgeLine.EventLayers.GetAngleAtTime(curTick);
-            float alpha = judgeLine.EventLayers.GetAlphaAtTime(curTick);
+            alpha = judgeLine.EventLayers.GetAlphaAtTime(curTick);
             rectTransform.anchoredPosition = new Vector2(x, y);
             rectTransform.rotation = Quaternion.Euler(0, 0, theta);
             Color color = _lineRenderer.material.color;
@@ -83,7 +85,7 @@ public class JudgeLineScript : MonoBehaviour
         float posX = xy.Item1;
         float posY = xy.Item2;
         float posTheta = judgeLine.EventLayers.GetAngleAtTime(curTick);
-        float alpha = judgeLine.EventLayers.GetAlphaAtTime(curTick);
+        alpha = judgeLine.EventLayers.GetAlphaAtTime(curTick);
         Enqueue(() =>
         {
             rectTransform.anchoredPosition = new Vector2(posX, posY);
