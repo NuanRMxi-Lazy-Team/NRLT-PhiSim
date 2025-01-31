@@ -9,7 +9,9 @@ using TMPro;
 public class JudgeLineScript : MonoBehaviour
 {
     //获取初始参数
+    [HideInInspector]
     public RpeClass.JudgeLine judgeLine;
+    [HideInInspector]
     public Play_GameManager GameManager;
 
 
@@ -17,13 +19,15 @@ public class JudgeLineScript : MonoBehaviour
     [HideInInspector] public int whoami = 0;
     public RectTransform rectTransform;
     private Renderer _lineRenderer;
+    public SpriteRenderer spriteRenderer;
     public TMP_Text lineID;
+    public TMP_Text lineText;
     [HideInInspector]
     public float alpha;
 
     private readonly ConcurrentQueue<Action> ExecutionQueue = new();
 
-    public void Enqueue(Action action)
+    private void Enqueue(Action action)
     {
         if (action == null)
             throw new ArgumentNullException(nameof(action));
@@ -31,7 +35,7 @@ public class JudgeLineScript : MonoBehaviour
     }
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         _lineRenderer = GetComponent<Renderer>();
         lineID.text = whoami.ToString();
@@ -41,6 +45,20 @@ public class JudgeLineScript : MonoBehaviour
         
         lineID.enabled = debugMode;
         lineID.alpha = 1;
+        if (judgeLine.Extended.TextEvents is not null && judgeLine.Extended.TextEvents.Count > 0)
+        {
+            spriteRenderer.enabled = false;
+            lineText.enabled = true;
+            StartCoroutine(TextEventReader());
+        }
+        if (judgeLine.Extended.ScaleYEvents is not null && judgeLine.Extended.ScaleYEvents.Count > 0)
+        {
+            StartCoroutine(ScaleYEventReader());
+        }
+        if (judgeLine.Extended.ScaleXEvents is not null && judgeLine.Extended.ScaleXEvents.Count > 0)
+        {
+            StartCoroutine(ScaleXEventReader());
+        }
         if (ChartCache.Instance.moveMode == ChartCache.MoveMode.Beta)
         {
             StartCoroutine(EventReader());
@@ -129,6 +147,44 @@ public class JudgeLineScript : MonoBehaviour
         {
             Thread thread = new Thread(ThreadUpdate);
             thread.Start();
+            yield return null;
+        }
+    }
+
+    #endregion
+
+    #region Extended Event
+
+    private IEnumerator TextEventReader()
+    {
+        while (true)
+        {
+            var curTick = GameManager.curTick;
+            var text = judgeLine.Extended.TextEvents.GetValueAtTime(curTick);
+            lineText.text = text;
+            lineText.alpha = alpha;
+            yield return null;
+        }
+    }
+
+    private IEnumerator ScaleXEventReader()
+    {
+        while (true)
+        {
+            var curTick = GameManager.curTick;
+            var x = judgeLine.Extended.ScaleXEvents.GetValueAtTime(curTick);
+            rectTransform.localScale = new Vector3(x, rectTransform.localScale.y, 1);
+            yield return null;
+        }
+    }
+
+    private IEnumerator ScaleYEventReader()
+    {
+        while (true)
+        {
+            var curTick = GameManager.curTick;
+            var y = judgeLine.Extended.ScaleYEvents.GetValueAtTime(curTick);
+            rectTransform.localScale = new Vector3(rectTransform.localScale.x, y, 1);
             yield return null;
         }
     }

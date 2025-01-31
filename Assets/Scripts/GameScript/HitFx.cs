@@ -22,13 +22,17 @@ public class HitFx : MonoBehaviour
 
     private void Start()
     {
+        _spriteRenderer = GetComponent<SpriteRenderer>();
         //1为Tap、2为Hold、3为Flick、4为Drag，从GameManager中获取对应的音效
         gameManager.PlayHitSound(hitType);
+        bool debugMode = PlayerPrefs.GetInt("debugMode") == 1;
+        _spriteRenderer.maskInteraction =
+            debugMode ? SpriteMaskInteraction.None : SpriteMaskInteraction.VisibleInsideMask;
         
         //从ChartCache中获取打击特效
         _hitFxSprites = ChartCache.Instance.HitFxs;
         
-        _spriteRenderer = GetComponent<SpriteRenderer>();
+        
         StartCoroutine(FxUpdate());
     }
 

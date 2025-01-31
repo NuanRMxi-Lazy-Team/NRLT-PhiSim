@@ -41,16 +41,11 @@ public class Play_Note : MonoBehaviour
     private void Update()
     {
         //实际speed = speed * speedMultiplier，单位为每一个速度单位648像素每秒，根据此公式实时演算相对于判定线的高度（y坐标）
-        float yPos = CalculateYPosition(
-            Note.StartTime.CurTime(),
-            gameManager.curTick);
-        noteRectTransform.anchoredPosition = new Vector2(Note.PositionX,
-            yPos);
-        
-        _noteRenderer.enabled = ((yPos < 0f && Note.Above != 1) || 
-                                (yPos > 0f && Note.Above == 1) || 
-                                fatherJudgeLine.judgeLine.IsCover == 0) && 
-                                fatherJudgeLine.alpha >= 0;
+        var yPos = CalculateYPosition(Note.StartTime.CurTime(), gameManager.curTick);
+        noteRectTransform.anchoredPosition = new Vector2(Note.PositionX, yPos);
+
+        _noteRenderer.enabled = (!((yPos < 0f && Note.Above == 1) || (yPos > 0f && Note.Above != 1)) ||
+                                fatherJudgeLine.judgeLine.IsCover == 0) && fatherJudgeLine.alpha >= 0f;
     }
 
 

@@ -25,6 +25,7 @@ public class Play_Hold : MonoBehaviour
     private Renderer _headRenderer;
     private Renderer _bodyRenderer;
     private Renderer _endRenderer;
+    private SpriteRenderer _bodySpriteRenderer;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -38,11 +39,11 @@ public class Play_Hold : MonoBehaviour
         }
 
         _canvas = GameObject.Find("Play Canvas");
-
+        _bodySpriteRenderer = body.GetComponent<SpriteRenderer>();
         bool debugMode = PlayerPrefs.GetInt("debugMode") == 1;
         head.GetComponent<SpriteRenderer>().maskInteraction =
             debugMode ? SpriteMaskInteraction.None : SpriteMaskInteraction.VisibleInsideMask;
-        body.GetComponent<SpriteRenderer>().maskInteraction =
+        _bodySpriteRenderer.maskInteraction =
             debugMode ? SpriteMaskInteraction.None : SpriteMaskInteraction.VisibleInsideMask;
         end.GetComponent<SpriteRenderer>().maskInteraction =
             debugMode ? SpriteMaskInteraction.None : SpriteMaskInteraction.VisibleInsideMask;
@@ -60,8 +61,7 @@ public class Play_Hold : MonoBehaviour
 
 
         // 修改Body的高度
-        body.GetComponent<SpriteRenderer>().size =
-            new Vector2(body.GetComponent<SpriteRenderer>().size.x, height - 12f);
+        _bodySpriteRenderer.size = new Vector2(_bodySpriteRenderer.size.x, height - 12f);
         if (!_isHolding)
         {
             // 设置note整体位置
@@ -82,11 +82,8 @@ public class Play_Hold : MonoBehaviour
         if (!_isHolding) headRectTransform.anchoredPosition = new Vector2(0, -Mathf.Abs(height / 2f));
 
         // 遮罩行为
-        var isEnabled = ((yPos < 0f && Note.Above != 1) || 
-                         (yPos > 0f && Note.Above == 1) || 
-                         height >= 0f || 
-                         fatherJudgeLine.judgeLine.IsCover == 0) && 
-                        fatherJudgeLine.alpha >= 0;
+        var isEnabled = (!((yPos < 0f && Note.Above == 1) || (yPos > 0f && Note.Above != 1)) ||
+                         fatherJudgeLine.judgeLine.IsCover == 0) && fatherJudgeLine.alpha >= 0f && height > 0f;
         
         if (!_isHolding) _headRenderer.enabled = isEnabled;
         _bodyRenderer.enabled = isEnabled;

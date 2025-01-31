@@ -404,7 +404,6 @@ namespace PhigrosFanmade
                         //第三代Phigros官谱
                         Log.Write("Chart Version is Official_V3");
 
-
                         //读取出所有判定线
                         var judgeLineList = jsonChart["judgeLineList"];
 
@@ -602,6 +601,8 @@ namespace PhigrosFanmade
 
                         rpeChart.Music = _musicTemp;
                         rpeChart.Illustration = _illustrationTemp;
+                        float offsetSec = jsonChart["offset"];
+                        rpeChart.Meta.Offset = (int)(offsetSec * 1000f);
                         return rpeChart;
                     }
                     if (jsonChart["formatVersion"] == 1)

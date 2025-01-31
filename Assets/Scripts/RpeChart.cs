@@ -242,13 +242,13 @@ namespace RePhiEdit
                 ColorEvents = new List<ColorEvent>();
                 ScaleXEvents = new EventList();
                 ScaleYEvents = new EventList();
-                TextEvents = new List<TextEvent>();
+                TextEvents = new TextEventList();
             }
 
             [JsonProperty("colorEvents")] public List<ColorEvent> ColorEvents; // 颜色事件
             [JsonProperty("scaleXEvents")] public EventList ScaleXEvents; // X轴缩放事件
             [JsonProperty("scaleYEvents")] public EventList ScaleYEvents; // Y轴缩放事件
-            [JsonProperty("textEvents")] public List<TextEvent> TextEvents; // 文本事件
+            [JsonProperty("textEvents")] public TextEventList TextEvents; // 文本事件
         }
 
         /// <summary>
@@ -442,6 +442,32 @@ namespace RePhiEdit
             }
         }
 
+        public class TextEventList : List<TextEvent>
+        {
+            private int _lastIndex;
+
+            public string GetValueAtTime(float t)
+            {
+                for (int i = _lastIndex; i < Count; i++)
+                {
+                    var e = this[i];
+                    if (t >= e.StartTime.CurTime() && t <= e.EndTime.CurTime())
+                    {
+                        _lastIndex = i;
+                        return e.GetValueAtTime(t);
+                    }
+
+                    if (t < e.StartTime.CurTime())
+                    {
+                        break;
+                    }
+                }
+
+                var previousEvent = FindLast(e => t > e.EndTime.CurTime());
+                return previousEvent?.End ?? "";
+            }
+        }
+
         public class TextEvent : Event
         {
             [JsonProperty("start")] public new string Start = ""; // 开始文本
@@ -451,8 +477,9 @@ namespace RePhiEdit
             // 覆写GetValue方法，返回抛出异常
             public new string GetValueAtTime(float t)
             {
+                return End;
                 // TODO: 文字事件插值
-                throw new NotImplementedException();
+                // throw new NotImplementedException();
             }
         }
 
