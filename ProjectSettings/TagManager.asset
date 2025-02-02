@@ -47,5 +47,11 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: judgeLines
+    uniqueID: 1176137773
+    locked: 0
+  - name: Note
+    uniqueID: 246874301
+    locked: 0
   m_RenderingLayers:
   - Default

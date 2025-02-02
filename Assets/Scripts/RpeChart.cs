@@ -307,9 +307,9 @@ namespace RePhiEdit
                 //获得这个拍在这个事件的时间轴上的位置
                 float t = (time - startTime) / (endTime - startTime);
                 //获得当前拍的值
-                float easedBeat = Easing.Evaluate(EasingType, EasingLeft, EasingRight, t);
+                float easedTime = Easing.Evaluate(EasingType, EasingLeft, EasingRight, t);
                 //插值
-                return Mathf.LerpUnclamped(Start, End, easedBeat);
+                return Mathf.LerpUnclamped(Start, End, easedTime);
             }
         }
 
@@ -445,25 +445,25 @@ namespace RePhiEdit
 
         public class ColorEvent : Event
         {
-            [JsonProperty("start")] public new float[] Start = { 0.0f, 0.0f, 0.0f }; // 开始颜色(RGB)
+            [JsonProperty("start")] public new float[] Start = new float[3]; // 开始颜色(RGB)
 
-            [JsonProperty("end")] public new float[] End = { 0.0f, 0.0f, 0.0f }; // 结束颜色(RGB)
+            [JsonProperty("end")] public new float[] End = new float[3]; // 结束颜色(RGB)
 
             // 覆写GetValue方法，返回三个颜色值
             public new float[] GetValueAtTime(float time)
             {
-                float startBeat = StartTime.CurBeat;
-                float endBeat = EndTime.CurBeat;
+                float startTime = StartTime.CurTime();
+                float endTime = EndTime.CurTime();
                 //获得这个拍在这个事件的时间轴上的位置
-                float t = (time - startBeat) / (endBeat - startBeat);
+                float t = (time - startTime) / (endTime - startTime);
                 //获得当前拍的值
-                float easedBeat = Easing.Evaluate(EasingType, EasingLeft, EasingRight, t);
+                float easedTime = Easing.Evaluate(EasingType, EasingLeft, EasingRight, t);
                 //插值，RGB三个颜色值
                 return new[]
                 {
-                    Mathf.LerpUnclamped(Start[0], End[0], easedBeat),
-                    Mathf.LerpUnclamped(Start[1], End[1], easedBeat),
-                    Mathf.LerpUnclamped(Start[2], End[2], easedBeat)
+                    Mathf.LerpUnclamped(Start[0], End[0], easedTime),
+                    Mathf.LerpUnclamped(Start[1], End[1], easedTime),
+                    Mathf.LerpUnclamped(Start[2], End[2], easedTime)
                 };
             }
         }
@@ -567,7 +567,7 @@ namespace RePhiEdit
     }
 }
 
-public class JudgeLineSprites
+public static class JudgeLineSprites
 {
     public static Dictionary<string,Sprite> SpritePool;
 }

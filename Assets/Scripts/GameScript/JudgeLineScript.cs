@@ -67,10 +67,12 @@ public class JudgeLineScript : MonoBehaviour
         if (judgeLine.Texture != "line.png")
         {
             spriteRenderer.sprite = JudgeLineSprites.SpritePool[judgeLine.Texture];
-            spriteRenderer.size = new Vector2(spriteRenderer.sprite.rect.size.x * 0.24f,
-                spriteRenderer.sprite.rect.size.y * 0.24f);//spriteRenderer.sprite.rect.size;
+            //spriteRenderer.size = new Vector2(spriteRenderer.sprite.rect.size.x * 0.5f,spriteRenderer.sprite.rect.size.y * 0.5f);//spriteRenderer.sprite.rect.size;
+            spriteRenderer.size = spriteRenderer.sprite.rect.size;
             spriteRenderer.color = Color.white;
         }
+
+        spriteRenderer.sortingOrder = judgeLine.ZOrder;
     }
 
     #region Beta
@@ -140,7 +142,7 @@ public class JudgeLineScript : MonoBehaviour
             var curTick = GameManager.curTick;
             var color = judgeLine.Extended.ColorEvents.GetValueAtTime(curTick);
             var spriteColor = new Color(color[0] / 255f, color[1] / 255f, color[2] / 255f);
-            _lineRenderer.material.color = spriteColor;
+            spriteRenderer.color = spriteColor;
             yield return null;
         }
     }
