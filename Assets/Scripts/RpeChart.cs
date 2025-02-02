@@ -132,7 +132,7 @@ namespace RePhiEdit
 
         public class JudgeLine
         {
-            public string Texture = "line.png"; // 判定线材质
+            public string Texture = "line.png"; // 判定线材质路径
             [JsonProperty("anchor")] public float[] Anchor = { 0.5f, 0.5f }; // 判定线材质锚点
             [JsonProperty("eventLayers")] public EventLayers EventLayers = new(); // 事件层
             [JsonProperty("extended")] public Extend Extended; // 扩展事件层
@@ -239,13 +239,13 @@ namespace RePhiEdit
             // 在构造中初始化，避免空引用
             public Extend(bool init = true)
             {
-                ColorEvents = new List<ColorEvent>();
+                ColorEvents = new ColorEventList();
                 ScaleXEvents = new EventList();
                 ScaleYEvents = new EventList();
                 TextEvents = new TextEventList();
             }
 
-            [JsonProperty("colorEvents")] public List<ColorEvent> ColorEvents; // 颜色事件
+            [JsonProperty("colorEvents")] public ColorEventList ColorEvents; // 颜色事件
             [JsonProperty("scaleXEvents")] public EventList ScaleXEvents; // X轴缩放事件
             [JsonProperty("scaleYEvents")] public EventList ScaleYEvents; // Y轴缩放事件
             [JsonProperty("textEvents")] public TextEventList TextEvents; // 文本事件
@@ -416,6 +416,32 @@ namespace RePhiEdit
         {
             public float FloorPosition;
         }
+        
+        public class ColorEventList : List<ColorEvent>
+        {
+            private int _lastIndex;
+
+            public float[] GetValueAtTime(float t)
+            {
+                for (int i = _lastIndex; i < Count; i++)
+                {
+                    var e = this[i];
+                    if (t >= e.StartTime.CurTime() && t <= e.EndTime.CurTime())
+                    {
+                        _lastIndex = i;
+                        return e.GetValueAtTime(t);
+                    }
+
+                    if (t < e.StartTime.CurTime())
+                    {
+                        break;
+                    }
+                }
+
+                var previousEvent = FindLast(e => t > e.EndTime.CurTime());
+                return previousEvent?.End ?? new float[3];
+            }
+        }
 
         public class ColorEvent : Event
         {
@@ -539,4 +565,9 @@ namespace RePhiEdit
             writer.WriteEndArray();
         }
     }
+}
+
+public class JudgeLineSprites
+{
+    public static Dictionary<string,Sprite> SpritePool;
 }

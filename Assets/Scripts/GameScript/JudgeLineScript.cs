@@ -52,21 +52,24 @@ public class JudgeLineScript : MonoBehaviour
             StartCoroutine(TextEventReader());
         }
         if (judgeLine.Extended.ScaleYEvents is not null && judgeLine.Extended.ScaleYEvents.Count > 0)
-        {
             StartCoroutine(ScaleYEventReader());
-        }
+        
         if (judgeLine.Extended.ScaleXEvents is not null && judgeLine.Extended.ScaleXEvents.Count > 0)
-        {
             StartCoroutine(ScaleXEventReader());
-        }
+        if (judgeLine.Extended.ColorEvents is not null && judgeLine.Extended.ColorEvents.Count > 0)
+            StartCoroutine(ColorEventReader());
+        
         if (ChartCache.Instance.moveMode == ChartCache.MoveMode.Beta)
         {
             StartCoroutine(EventReader());
         }
-        else if (ChartCache.Instance.moveMode == ChartCache.MoveMode.WhatTheFuck)
+
+        if (judgeLine.Texture != "line.png")
         {
-            StartCoroutine(ThreadStarter());
-            StartCoroutine(FrameUpdate());
+            spriteRenderer.sprite = JudgeLineSprites.SpritePool[judgeLine.Texture];
+            spriteRenderer.size = new Vector2(spriteRenderer.sprite.rect.size.x * 0.24f,
+                spriteRenderer.sprite.rect.size.y * 0.24f);//spriteRenderer.sprite.rect.size;
+            spriteRenderer.color = Color.white;
         }
     }
 
@@ -93,66 +96,7 @@ public class JudgeLineScript : MonoBehaviour
 
     #endregion
 
-    #region WTF
-
-    private void ThreadUpdate()
-    {
-        float curTick = GameManager.curTick;
-
-        var xy = GameManager.Chart.JudgeLineList.GetLinePosition(whoami, curTick);
-        float posX = xy.Item1;
-        float posY = xy.Item2;
-        float posTheta = judgeLine.EventLayers.GetAngleAtTime(curTick);
-        alpha = judgeLine.EventLayers.GetAlphaAtTime(curTick);
-        Enqueue(() =>
-        {
-            rectTransform.anchoredPosition = new Vector2(posX, posY);
-            rectTransform.rotation = Quaternion.Euler(0, 0, posTheta);
-            Color color = _lineRenderer.material.color;
-            color.a = alpha;
-            _lineRenderer.material.color = color;
-        });
-    }
-
-    // 帧刷新
-    private IEnumerator FrameUpdate()
-    {
-        while (true)
-        {
-            // 执行队列中的操作
-            while (ExecutionQueue.TryDequeue(out var action))
-            {
-                action?.Invoke();
-            }
-
-            yield return null;
-        }
-
-        /*
-        while (true)
-        {
-            rectTransform.anchoredPosition = new Vector2(_posX, _posY);
-            rectTransform.rotation = Quaternion.Euler(0, 0, _posTheta);
-            Color color = _lineRenderer.material.color;
-            color.a = _alpha;
-            _lineRenderer.material.color = color;
-            yield return null;
-        }
-        */
-    }
-
-    private IEnumerator ThreadStarter()
-    {
-        while (true)
-        {
-            Thread thread = new Thread(ThreadUpdate);
-            thread.Start();
-            yield return null;
-        }
-    }
-
-    #endregion
-
+    
     #region Extended Event
 
     private IEnumerator TextEventReader()
@@ -185,6 +129,18 @@ public class JudgeLineScript : MonoBehaviour
             var curTick = GameManager.curTick;
             var y = judgeLine.Extended.ScaleYEvents.GetValueAtTime(curTick);
             rectTransform.localScale = new Vector3(rectTransform.localScale.x, y, 1);
+            yield return null;
+        }
+    }
+    
+    private IEnumerator ColorEventReader()
+    {
+        while (true)
+        {
+            var curTick = GameManager.curTick;
+            var color = judgeLine.Extended.ColorEvents.GetValueAtTime(curTick);
+            var spriteColor = new Color(color[0] / 255f, color[1] / 255f, color[2] / 255f);
+            _lineRenderer.material.color = spriteColor;
             yield return null;
         }
     }

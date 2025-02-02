@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using SimpleJSON;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using JetBrains.Annotations;
@@ -244,26 +245,28 @@ namespace PhigrosFanmade
         {
             Texture2D texture = new(1, 1);
             texture.LoadImage(bytes);
-            try
+            return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f));
+        }
+        
+        private static Sprite IllustrationBlur(Sprite sprite)
+        {
+            Texture2D texture = sprite.texture;
+            int width = texture.width;
+            int height = texture.height;
+            Texture2D newTexture = new Texture2D(width, height);
+            Color[] colors = texture.GetPixels();
+            for (int i = 0; i < width; i++)
             {
-                // 插画预处理
-                RenderTexture rt = RenderTexture.GetTemporary(texture.width, texture.height);
-                Graphics.Blit(texture, rt, new Material(Shader.Find("Custom/GaussianBlur")));
-                RenderTexture.active = rt;
-                Texture2D blurredTexture = new(texture.width, texture.height);
-                blurredTexture.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-                blurredTexture.Apply();
-                RenderTexture.ReleaseTemporary(rt);
+                for (int j = 0; j < height; j++)
+                {
+                    Color color = colors[j * width + i];
+                    newTexture.SetPixel(i, j, new Color(color.r, color.g, color.b, 0.5f));
+                }
+            }
 
-                return Sprite.Create(blurredTexture, new Rect(0, 0, blurredTexture.width, blurredTexture.height),
-                    new Vector2(0.5f, 0.5f));
-            }
-            catch (Exception e)
-            {
-                Log.Write("在处理曲绘时遇到问题：" + e, LogType.Error);
-                return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
-                    new Vector2(0.5f, 0.5f));
-            }
+            newTexture.Apply();
+            return Sprite.Create(newTexture, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
         }
 
         #endregion
@@ -393,8 +396,7 @@ namespace PhigrosFanmade
                     Main_Button_Click.Enqueue(() =>
                     {
                         _musicTemp = LoadAudioClip(musicFile);
-                        _illustrationTemp =
-                            BytesToSprite(File.ReadAllBytes(illustrationFile));
+                        _illustrationTemp =IllustrationBlur(BytesToSprite(File.ReadAllBytes(illustrationFile)));
                     });
 
 
@@ -617,6 +619,7 @@ namespace PhigrosFanmade
                         //RPE谱面
                         rpeChart = JsonConvert.DeserializeObject<RpeChart>(rawChart);
                         Main_Button_Click.Enqueue(() => Log.Write("序列化成功..."));
+                        JudgeLineSprites.SpritePool = new Dictionary<string, Sprite>();
                         foreach (var judgeLine in rpeChart.JudgeLineList)
                         {
                             judgeLine.CoordinateTransformer();
@@ -631,6 +634,21 @@ namespace PhigrosFanmade
                                 note.FloorPosition =
                                     judgeLine.EventLayers.GetCurFloorPosition(note.StartTime.CurTime());
                                 judgeLine.Notes[i] = note;
+                            }
+
+                            if (judgeLine.Texture != "line.png")
+                            {
+                                // 将判定线贴图加载到Byte[]中
+                                var judgeLineSpriteBytes =
+                                    File.ReadAllBytes(Path.Combine(cacheFileDir, judgeLine.Texture));
+                                Main_Button_Click.Enqueue(() =>
+                                {
+                                    // 转换为Sprite
+                                    var judgeLineSprite = BytesToSprite(judgeLineSpriteBytes);
+                                    judgeLineSprite.name = judgeLine.Texture;
+                                    // 存储，方便后续调用
+                                    JudgeLineSprites.SpritePool.TryAdd(judgeLine.Texture, judgeLineSprite);
+                                });
                             }
                         }
 
