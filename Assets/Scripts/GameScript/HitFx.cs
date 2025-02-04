@@ -5,7 +5,7 @@ using UnityEngine;
 using E7.Native;
 #endif
 
-
+// ReSharper disable once CheckNamespace
 public class HitFx : MonoBehaviour
 {
     private List<Sprite> _hitFxSprites;

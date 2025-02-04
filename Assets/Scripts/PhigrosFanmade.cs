@@ -13,25 +13,12 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using RePhiEdit;
 
-
+// ReSharper disable once CheckNamespace
 namespace PhigrosFanmade
 {
     public class Chart
     {
         private const float RpeSpeedToOfficial = 4.5f; // RPE速度转换为官谱速度的比例
-
-        /// <summary>
-        /// 官谱时间转换
-        /// </summary>
-        /// <param name="T">时间</param>
-        /// <param name="bpm">BPM</param>
-        /// <returns>此时间对应的毫秒</returns>
-        [Obsolete("用不着了，去用 ConvertToRpeTime 方法吧")]
-        private static double OfficialV3_TimeConverter(double T, float bpm)
-        {
-            var originalTime = T / bpm * 1.875; //结果为秒
-            return originalTime * 1000; //返回毫秒
-        }
         
         /// <summary>
         /// 转换官谱时间为RPE时间
@@ -272,7 +259,6 @@ namespace PhigrosFanmade
         #endregion
 
         //Data
-        public string RawChart;
         private static AudioClip _musicTemp;
         private static Sprite _illustrationTemp;
 
@@ -552,8 +538,7 @@ namespace PhigrosFanmade
                             for (int j = 0; j < noteList.Count; j++)
                             {
                                 //Note类型识别
-                                int noteType;
-                                noteType = (int)noteList[j]["type"];
+                                int noteType = (int)noteList[j]["type"];
 
                                 // RPE
                                 var rpeClickBeat = ConvertToRpeTime(noteList[j]["time"]);
@@ -648,6 +633,7 @@ namespace PhigrosFanmade
                                     judgeLineSprite.name = judgeLine.Texture;
                                     // 存储，方便后续调用
                                     JudgeLineSprites.SpritePool.TryAdd(judgeLine.Texture, judgeLineSprite);
+                                    Log.Write(judgeLine.Texture + "已加载");
                                 });
                             }
                         }

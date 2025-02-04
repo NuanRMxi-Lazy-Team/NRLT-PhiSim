@@ -24,6 +24,10 @@ public class JudgeLineScript : MonoBehaviour
     public TMP_Text lineText;
     [HideInInspector]
     public float alpha;
+    
+    // FloorPosition
+    [HideInInspector]
+    public float floorPosition = 0f;
 
     private readonly ConcurrentQueue<Action> ExecutionQueue = new();
 
@@ -73,6 +77,11 @@ public class JudgeLineScript : MonoBehaviour
         }
 
         spriteRenderer.sortingOrder = judgeLine.ZOrder;
+    }
+
+    private void Update()
+    {
+        floorPosition = judgeLine.EventLayers.GetCurFloorPosition(GameManager.curTick);
     }
 
     #region Beta

@@ -1,4 +1,5 @@
 using RePhiEdit;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Play_Hold : MonoBehaviour
@@ -59,7 +60,6 @@ public class Play_Hold : MonoBehaviour
         float yPos = CalculateYPosition(Note.StartTime.CurTime(), gameManager.curTick);
         float height = -CalcHeight();
 
-
         // 修改Body的高度
         _bodySpriteRenderer.size = new Vector2(_bodySpriteRenderer.size.x, height - 12f);
         if (!_isHolding)
@@ -84,7 +84,7 @@ public class Play_Hold : MonoBehaviour
         // 遮罩行为
         var isEnabled = (!((yPos < 0f && Note.Above == 1) || (yPos > 0f && Note.Above != 1)) ||
                          fatherJudgeLine.judgeLine.IsCover == 0) && fatherJudgeLine.alpha >= 0f && height > 0f;
-        
+
         if (!_isHolding) _headRenderer.enabled = isEnabled;
         _bodyRenderer.enabled = isEnabled;
         _endRenderer.enabled = isEnabled;
@@ -129,7 +129,7 @@ public class Play_Hold : MonoBehaviour
         // 如果音符已经被击打，为了确保仍然在线上，使用Note的FP
         var startPosition = _isHolding
             ? Note.FloorPosition
-            : fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime);
+            : fatherJudgeLine.floorPosition;
 
         float newYPosition =
         (
@@ -144,24 +144,18 @@ public class Play_Hold : MonoBehaviour
 
     private float CalcHeight()
     {
-        var curTick = gameManager.curTick;
+        var floorPosition = fatherJudgeLine.floorPosition;
 
         // 如果音符已经被击打，使用当前时间作为开始位置
         var startPosition = _isHolding
-            ? fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(curTick)
+            ? floorPosition
             : Note.FloorPosition;
 
-        var clickStartFloorPosition =
-        (
-            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(curTick) -
-            startPosition
-        );
+        var clickStartFloorPosition = floorPosition - startPosition;
 
         var clickEndFloorPosition =
-        (
-            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(curTick) -
-            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(Note.EndTime.CurTime())
-        );
+            floorPosition -
+            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(Note.EndTime.CurTime());
 
         return clickEndFloorPosition - clickStartFloorPosition;
     }

@@ -30,13 +30,12 @@ public class Play_GameManager : MonoBehaviour
     public AudioClip dragAudioClip;
     public AudioClip flickAudioClip;
     
-    //Tick
+    // Tick
     [HideInInspector]
     public float curTick = 0f;
 
     public TMP_Text Time;
     public RpeChart Chart;
-    
     
     //背景插画
     public GameObject Illistration;
@@ -228,12 +227,10 @@ public class Play_GameManager : MonoBehaviour
             //生成Hold
             foreach (var hold in holdList)
             {
-                
-                var head = Instantiate(HoldNote,instance.GetComponent<RectTransform>());
-                head.GetComponent<Play_Hold>().fatherJudgeLine = script;
-                head.GetComponent<Play_Hold>().Note = hold;
-                head.GetComponent<Play_Hold>().gameManager = this;
-                
+                var holdNote = Instantiate(HoldNote,instance.GetComponent<RectTransform>());
+                holdNote.GetComponent<Play_Hold>().fatherJudgeLine = script;
+                holdNote.GetComponent<Play_Hold>().Note = hold;
+                holdNote.GetComponent<Play_Hold>().gameManager = this;
                 
                 /*
                 var head = Instantiate(HoldHead,instance.GetComponent<RectTransform>());
@@ -275,10 +272,11 @@ public class Play_GameManager : MonoBehaviour
 
     public void JumpToTick(float tick)
     {
+        float curTick = (tick + Chart.Meta.Offset) / 1000 ;
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-        _musicAudioSource.time = tick / 1000;
+        _musicAudioSource.time = curTick;
 #elif UNITY_ANDROID || UNITY_IOS
-        _musicAudioSource.SetPlaybackTime(tick / 1000);
+        _musicAudioSource.SetPlaybackTime(curTick);
 #endif
     }
     

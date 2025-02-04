@@ -2,12 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
-using LogWriter;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RpeEasing;
 using UnityEngine;
-using LogType = LogWriter.LogType;
 
 namespace RePhiEdit
 {
@@ -16,6 +14,7 @@ namespace RePhiEdit
         // 构造
         public RpeChart(bool init = true)
         {
+            if (!init) throw new Exception("init must be true");
             BpmList = new List<RpeClass.RpeBpm>();
             Meta = new RpeClass.Meta();
             JudgeLineList = new RpeClass.JudgeLineList();
@@ -69,7 +68,7 @@ namespace RePhiEdit
                 }
             }
 
-            public float CurBeat => (float)this[1] / this[2] + this[0];
+            private float CurBeat => (float)this[1] / this[2] + this[0];
 
             public float CurTime()
             {
@@ -239,6 +238,7 @@ namespace RePhiEdit
             // 在构造中初始化，避免空引用
             public Extend(bool init = true)
             {
+                if (!init) throw new Exception("init must be true");
                 ColorEvents = new ColorEventList();
                 ScaleXEvents = new EventList();
                 ScaleYEvents = new EventList();
@@ -514,6 +514,7 @@ namespace RePhiEdit
             // 结构体初始化，避免空引用，以下原本是class的属性
             public Note(bool init = true)
             {
+                if (!init) throw new Exception("init must be true");
                 StartTime = new();
                 EndTime = new();
                 Alpha = 255;

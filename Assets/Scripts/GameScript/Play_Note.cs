@@ -1,10 +1,9 @@
-using System.Collections;
-using System;
-using PhigrosFanmade;
 using RePhiEdit;
 using UnityEngine;
 using UnityEngine.Serialization;
 
+// ReSharper disable once CheckNamespace
+// ReSharper disable once InconsistentNaming
 public class Play_Note : MonoBehaviour
 {
     //获取初始参数
@@ -81,20 +80,22 @@ public class Play_Note : MonoBehaviour
         // 弃用原直接计算，使用floorPos进行计算。
         float newYPosition =
         (
-            fatherJudgeLine.judgeLine.EventLayers.GetCurFloorPosition(lastTime) -
+            fatherJudgeLine.floorPosition -
             Note.FloorPosition
         ) * Note.SpeedMultiplier;
 
         newYPosition = Note.Above == 1 ? -newYPosition : newYPosition;
 
-        if (lastTime <= Note.EndTime.CurTime() && lastTime >= targetTime)
+        if (lastTime > Note.EndTime.CurTime() || lastTime < targetTime)
         {
-            newYPosition = -1200f;
-            if (Note.Above == 1)
-            {
-                //翻转y坐标
-                newYPosition = 1200f;
-            }
+            return newYPosition;
+        }
+
+        newYPosition = -1200f;
+        if (Note.Above == 1)
+        {
+            //翻转y坐标
+            newYPosition = 1200f;
         }
 
         return newYPosition;

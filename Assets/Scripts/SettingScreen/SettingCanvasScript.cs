@@ -11,12 +11,6 @@ public class SettingCanvasScript : MonoBehaviour
         // 初始化设置，从设置中读取设置
         debugModeToggle.isOn = PlayerPrefs.GetInt("debugMode") == 1;
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
     
     // 保存事件
     public void Save()

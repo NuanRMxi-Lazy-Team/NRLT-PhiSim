@@ -53,5 +53,8 @@ TagManager:
   - name: Note
     uniqueID: 246874301
     locked: 0
+  - name: HitFx
+    uniqueID: 3681603859
+    locked: 0
   m_RenderingLayers:
   - Default

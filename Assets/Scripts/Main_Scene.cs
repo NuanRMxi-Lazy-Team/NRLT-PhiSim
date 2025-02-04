@@ -102,7 +102,7 @@ public class Main_Button_Click : MonoBehaviour
         float screenWidth = Screen.width;
         float screenHeight = Screen.height;
         //拟合宽高比为16:9，高度不变，计算新的宽度
-        float aspectRatio = screenWidth / screenHeight;
+        //float aspectRatio = screenWidth / screenHeight;
         float targetWidth = Screen.height * 16f / 9f;
         //设置Panel的宽度
         GameObject.Find("Main_Panel").GetComponent<RectTransform>().sizeDelta = new Vector2(targetWidth, Screen.height);
@@ -160,14 +160,9 @@ public class Main_Button_Click : MonoBehaviour
 
     public void Play()
     {
-        //进入测试播放屏幕
-        SceneManager.LoadScene(1);
-        /*
-        if (ChartCache.Instance.chart is new RpeChart())
-        {
-            
-        }
-        else
+        
+        
+        if (ChartCache.Instance.chart.Music is null )
         {
             Log.Write("没谱面你播放个集贸（E:Main Not Load Chart)", LogType.Error);
             //弹出MessageBox
@@ -175,7 +170,11 @@ public class Main_Button_Click : MonoBehaviour
             GameObject instance = Instantiate(messageBox, parent.transform);
             instance.GetComponent<MessageBox_Scripts>().showText = "unknown Chart...";
         }
-        */
+        else
+        {
+            //进入测试播放屏幕
+            SceneManager.LoadScene(1);
+        }
     }
     
     public void GotoSettings()
